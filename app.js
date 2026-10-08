@@ -19,6 +19,8 @@ const I = {
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   dots: '<circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/>',
   flame: '<path d="M12 22c4 0 7-2.7 7-6.6 0-3.4-2.3-5.8-4.2-8.1-.5 1.8-1.4 3-2.8 3.6.4-3.1-.9-6.2-3.6-8.4C8.5 6.8 5 9.6 5 15.4 5 19.3 8 22 12 22z"/>',
+  mosque: '<path d="M12 3c2.5 2 4.5 3.6 4.5 6.2V11h-9V9.2C7.5 6.6 9.5 5 12 3z"/><path d="M4 21V12h16v9"/><path d="M10 21v-3.5a2 2 0 0 1 4 0V21"/><path d="M3 21h18"/><path d="M12 1.5v1.5"/>',
+  pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
   sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 1.8 1.8.7-1.8.7L19 21l-.7-1.8-1.8-.7 1.8-.7z"/>',
 };
 const icon = (n, sw = 1.8) =>
@@ -74,7 +76,7 @@ function save() {
 function pushMeta() {
   if (!NATIVE) return;
   const meta = WIRDS.map((w) => ({
-    id: w.id, title: w.title, period: w.period, type: w.type || "dhikr", pages: w.pages || 0,
+    id: w.id, title: w.title, short: w.short || w.title, period: w.period, type: w.type || "dhikr", pages: w.pages || 0,
     steps: (w.steps || []).map((st) => ({ title: st.title, count: st.count })),
   }));
   try { NATIVE.setMeta(JSON.stringify(meta)); } catch (e) {}
@@ -196,6 +198,7 @@ function renderHome() {
       <span class="c-go">${icon("arrow", 2.2)}</span>`;
   } else cont.hidden = true;
 
+  renderPrayer();
   renderTabs();
   renderCards();
 }
@@ -236,6 +239,64 @@ function renderCards() {
       </button>`;
     })
     .join("");
+}
+
+/* ========= أوقات الصلاة ========= */
+const pr = () => S.settings.prayer || null;
+const hm = (d) => n(d.getHours()).padStart(2, "٠") + ":" + n(d.getMinutes()).padStart(2, "٠");
+function inText(ms) {
+  const mins = Math.max(1, Math.round(ms / 60000));
+  const h = Math.floor(mins / 60), m = mins % 60;
+  if (!h) return `بعد ${n(m)} د`;
+  return m ? `بعد ${n(h)} س ${n(m)} د` : `بعد ${n(h)} س`;
+}
+function renderPrayer() {
+  const card = $("#prayer-card"), p = pr();
+  const nx = p && p.lat != null && PrayerTimes.next(p.lat, p.lng, p.method);
+  card.classList.toggle("empty", !nx);
+  card.innerHTML = nx
+    ? `<span class="p-ico">${icon("mosque")}</span>
+       <span class="p-txt"><div class="p-kicker">الصلاة القادمة${p.city ? " · " + p.city : ""}</div><div class="p-name">${nx.name}<b>${hm(nx.at)}</b></div></span>
+       <span class="p-left">${inText(nx.at - Date.now())}</span>`
+    : `<span class="p-ico">${icon("pin")}</span><span class="p-txt"><div class="p-kicker">أوقات الصلاة</div><div class="p-name">حدّد موقعك لعرض الصلاة القادمة</div></span>`;
+}
+function setLocation(lat, lng, city) {
+  S.settings.prayer = { ...(pr() || { method: "mwl" }), lat: +lat, lng: +lng, city: city || "" };
+  save();
+  renderPrayer();
+  renderPrayerSettings();
+  toast("تم حفظ الموقع");
+}
+function renderPrayerSettings() {
+  const p = pr();
+  const sel = $("#method");
+  if (!sel.options.length) {
+    sel.innerHTML = Object.entries(PRAYER_METHODS).map(([k, m]) => `<option value="${k}">${m.name}</option>`).join("");
+  }
+  sel.value = p?.method || "mwl";
+  if (p && p.lat != null) {
+    const t = PrayerTimes.forDate(new Date(), p.lat, p.lng, p.method);
+    const f = (h) => { const d = new Date(); d.setHours(0, Math.round(h * 60), 0, 0); return hm(d); };
+    $("#loc-status").innerHTML = `${p.city ? `<b>${p.city}</b> · ` : ""}<bdi dir="ltr">${p.lat.toFixed(3)}, ${p.lng.toFixed(3)}</bdi><br>` +
+      ["fajr", "dhuhr", "asr", "maghrib", "isha"].map((k) => `${PRAYER_NAMES[k]} ${f(t[k])}`).join(" · ");
+    $("#lat").value = p.lat; $("#lng").value = p.lng;
+  } else {
+    $("#loc-status").textContent = "لم يُحدَّد الموقع بعد. تُحسب الأوقات على جهازك دون إنترنت.";
+  }
+}
+function locate() {
+  $("#loc-btn").disabled = true;
+  $("#loc-btn").textContent = "جارٍ تحديد الموقع…";
+  const done = () => { $("#loc-btn").disabled = false; $("#loc-btn").textContent = "تحديد موقعي تلقائيًا"; };
+  window.onNativeLocation = (lat, lng, city) => { done(); setLocation(lat, lng, city); };
+  window.onNativeLocationError = (msg) => { done(); toast(msg || "تعذّر تحديد الموقع"); };
+  if (NATIVE && NATIVE.requestLocation) { NATIVE.requestLocation(); return; }
+  if (!navigator.geolocation) return window.onNativeLocationError();
+  navigator.geolocation.getCurrentPosition(
+    (pos) => window.onNativeLocation(pos.coords.latitude, pos.coords.longitude, ""),
+    () => window.onNativeLocationError("لم يُسمح بالوصول للموقع"),
+    { enableHighAccuracy: false, timeout: 15000, maximumAge: 86400000 }
+  );
 }
 
 /* ========= العدّاد ========= */
@@ -460,6 +521,8 @@ function renderSettings() {
   $("#set-vibrate").checked = S.settings.vibrate;
   $("#set-auto").checked = S.settings.auto;
   $("#set-wake").checked = S.settings.wake;
+  $("#install-group").hidden = !!NATIVE;
+  renderPrayerSettings();
   renderInstallHelp();
 }
 
@@ -542,10 +605,13 @@ function bind() {
   });
 
   // العدّ: المنطقة كلها حول الزر قابلة للضغط
-  const tapZone = $("#tap");
-  tapZone.addEventListener("pointerdown", (e) => { e.preventDefault(); count(); });
+  const tapZone = $("#tap-zone");
+  tapZone.addEventListener("pointerdown", (e) => {
+    if (e.target.closest(".tap-controls")) return;
+    e.preventDefault();
+    count();
+  });
   tapZone.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); count(); } });
-  tapZone.addEventListener("click", (e) => e.preventDefault());
   document.addEventListener("keydown", (e) => {
     if (openSheet === "#counter" && (e.key === "ArrowDown" || e.key === "+")) count();
   });
@@ -600,6 +666,18 @@ function bind() {
 
   // الإعدادات
   $("#open-settings").onclick = () => { showSheet("#settings"); renderSettings(); };
+  $("#prayer-card").onclick = () => { showSheet("#settings"); renderSettings(); if (pr()?.lat == null) setTimeout(() => $("#loc-btn").scrollIntoView({ block: "center" }), 50); };
+  $("#loc-btn").onclick = locate;
+  $("#method").onchange = (e) => {
+    S.settings.prayer = { ...(pr() || {}), method: e.target.value };
+    save(); renderPrayerSettings(); renderPrayer();
+  };
+  $("#loc-save").onclick = () => {
+    const lat = parseFloat($("#lat").value), lng = parseFloat($("#lng").value);
+    if (!(Math.abs(lat) <= 90 && Math.abs(lng) <= 180)) return toast("إحداثيات غير صحيحة");
+    setLocation(lat, lng, "");
+  };
+  setInterval(() => { if (!openSheet) renderPrayer(); }, 30000);
   $("#set-theme").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; S.settings.theme = b.dataset.v; save(); applySettings(); renderSettings(); };
   $("#set-scale").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; S.settings.scale = Number(b.dataset.v); save(); applySettings(); renderSettings(); };
   $("#set-vibrate").onchange = (e) => { S.settings.vibrate = e.target.checked; save(); if (e.target.checked) vibrate(20); };

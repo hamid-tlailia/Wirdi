@@ -27,7 +27,6 @@ final class WirdiStore {
     private static final String PREFS = "wirdi";
     private static final String K_STATE = "state";
     private static final String K_META = "meta";
-    private static final String K_FOCUS = "widget_focus";
 
     private final SharedPreferences prefs;
     JSONObject state;
@@ -67,14 +66,6 @@ final class WirdiStore {
 
     boolean hasMeta() {
         return !wirds.isEmpty();
-    }
-
-    String focus() {
-        return prefs.getString(K_FOCUS, null);
-    }
-
-    void setFocus(String id) {
-        prefs.edit().putString(K_FOCUS, id).apply();
     }
 
     // ———— الوقت ————
@@ -154,78 +145,6 @@ final class WirdiStore {
         return p != null && p.optBoolean("done");
     }
 
-    boolean isStarted(JSONObject w) {
-        JSONObject p = peek(w.optString("id"));
-        return p != null && !p.optBoolean("done") && (p.optInt("s") > 0 || p.optInt("c") > 0);
-    }
-
-    /** نفس منطق nextWird في app.js */
-    JSONObject nextWird() {
-        String per = currentPeriod();
-        for (JSONObject w : wirds) {
-            String wp = w.optString("period");
-            if (isStarted(w) && (wp.equals(per) || wp.equals("day"))) return w;
-        }
-        for (JSONObject w : wirds) if (!isDone(w) && w.optString("period").equals(per)) return w;
-        for (JSONObject w : wirds) if (!isDone(w) && w.optString("period").equals("day")) return w;
-        return null;
-    }
-
-    /** الورد المعروض في الويدجت: الذي اختاره المستخدم بزر التبديل إن لم يكتمل، وإلا التالي */
-    JSONObject widgetWird() {
-        String f = focus();
-        if (f != null) {
-            JSONObject w = wird(f);
-            if (w != null && !isDone(w)) return w;
-        }
-        return nextWird();
-    }
-
-    /** الأوراد غير المكتملة المناسبة للوقت (للتبديل بينها) */
-    List<JSONObject> openWirds() {
-        String per = currentPeriod();
-        List<JSONObject> out = new ArrayList<>();
-        for (JSONObject w : wirds) {
-            String wp = w.optString("period");
-            if (!isDone(w) && (wp.equals(per) || wp.equals("day"))) out.add(w);
-        }
-        if (out.isEmpty()) for (JSONObject w : wirds) if (!isDone(w)) out.add(w);
-        return out;
-    }
-
-    /** عدّة واحدة. يُرجع: 0 عادي، 1 اكتمل ذكر، 2 اكتمل الورد */
-    int count(JSONObject w) throws JSONException {
-        JSONObject p = prog(w.optString("id"));
-        if (p.optBoolean("done")) return 2;
-        if (isQuran(w)) {
-            p.put("done", true);
-            int pages = w.optInt("pages", 2);
-            state.put("quranPage", Math.min(TOTAL_PAGES, state.optInt("quranPage") + pages));
-            save();
-            return 2;
-        }
-        JSONArray steps = w.getJSONArray("steps");
-        int s = Math.min(p.optInt("s"), steps.length() - 1);
-        int target = steps.getJSONObject(s).optInt("count");
-        int c = p.optInt("c") + 1;
-        int result = 0;
-        if (c >= target) {
-            if (s < steps.length() - 1) {
-                p.put("s", s + 1);
-                p.put("c", 0);
-                result = 1;
-            } else {
-                p.put("c", target);
-                p.put("done", true);
-                result = 2;
-            }
-        } else {
-            p.put("c", c);
-        }
-        save();
-        return result;
-    }
-
     /** بداية يوم جديد: يحفظ نسبة الأمس ويصفّر التقدّم */
     boolean rollover() {
         String today = dayKey();
@@ -248,12 +167,16 @@ final class WirdiStore {
         } catch (JSONException ignored) {
         }
         save();
-        setFocus(null);
         return true;
     }
 
     int quranPage() {
         return state.optInt("quranPage");
+    }
+
+    JSONObject prayerSettings() {
+        JSONObject s = state.optJSONObject("settings");
+        return s == null ? null : s.optJSONObject("prayer");
     }
 
     boolean vibrateEnabled() {
@@ -263,7 +186,10 @@ final class WirdiStore {
 
     // ———— أرقام عربية ————
     static String ar(int n) {
-        String s = String.valueOf(n);
+        return ar(String.valueOf(n));
+    }
+
+    static String ar(String s) {
         StringBuilder b = new StringBuilder();
         for (char ch : s.toCharArray()) b.append(ch >= '0' && ch <= '9' ? (char) ('٠' + (ch - '0')) : ch);
         return b.toString();

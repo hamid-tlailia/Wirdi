@@ -41,6 +41,8 @@
       <div class="ring big" id="day-ring"></div>
     </section>
 
+    <button class="prayer-card" id="prayer-card"></button>
+
     <button class="continue" id="continue" hidden></button>
 
     <div class="install-banner" id="install-banner" hidden>
@@ -74,6 +76,7 @@
       <button class="icon-btn" id="c-menu" aria-label="خيارات"></button>
     </header>
 
+    <div class="counter-top">
     <div class="steps" id="c-steps"></div>
 
     <article class="dhikr-card">
@@ -85,16 +88,18 @@
         <p class="source" id="c-source"></p>
       </details>
     </article>
+    </div>
 
-    <div class="tap-zone" id="tap-zone">
-      <button class="tap" id="tap" aria-label="اضغط للعدّ">
+    <div class="tap-zone" id="tap-zone" role="button" tabindex="0" aria-label="اضغط في أي مكان هنا للعدّ">
+      <div class="tap-hint">المس في أي مكان هنا للعدّ</div>
+      <div class="tap" id="tap">
         <svg class="tap-ring" viewBox="0 0 200 200" aria-hidden="true">
           <circle cx="100" cy="100" r="90" class="track"/>
           <circle cx="100" cy="100" r="90" class="bar" id="tap-bar"/>
         </svg>
         <span class="tap-count" id="tap-count">0</span>
         <span class="tap-target" id="tap-target"></span>
-      </button>
+      </div>
       <div class="tap-controls">
         <button class="ctrl" id="c-undo"><span></span>تراجع</button>
         <button class="ctrl" id="c-reset"><span></span>إعادة</button>
@@ -187,6 +192,24 @@
       </label>
 
       <div class="set-group">
+        <h4>أوقات الصلاة</h4>
+        <p class="loc-status" id="loc-status"></p>
+        <button class="btn gold wide" id="loc-btn">تحديد موقعي تلقائيًا</button>
+        <label class="field">
+          <span>طريقة الحساب</span>
+          <select id="method"></select>
+        </label>
+        <details class="manual">
+          <summary>إدخال الإحداثيات يدويًا</summary>
+          <div class="manual-row">
+            <input id="lat" type="number" step="0.0001" inputmode="decimal" placeholder="خط العرض">
+            <input id="lng" type="number" step="0.0001" inputmode="decimal" placeholder="خط الطول">
+            <button class="btn ghost small" id="loc-save">حفظ</button>
+          </div>
+        </details>
+      </div>
+
+      <div class="set-group" id="install-group">
         <h4>التثبيت على الشاشة الرئيسية</h4>
         <div class="install-help" id="install-help"></div>
         <button class="btn gold wide" id="install-btn-2" hidden>تثبيت التطبيق الآن</button>
@@ -203,6 +226,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="data.js"></script>
+  <script src="prayer.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

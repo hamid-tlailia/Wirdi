@@ -142,6 +142,7 @@ const WIRDS = [
   // ———— الصباح ————
   {
     id: "morning",
+    short: "الصباح",
     title: "أذكار الصباح",
     subtitle: "من الفجر حتى الضحى",
     icon: "sunrise",
@@ -150,6 +151,7 @@ const WIRDS = [
   },
   {
     id: "salawat_am",
+    short: "صلاة ﷺ ص",
     title: "الصلاة على النبي ﷺ",
     subtitle: "عشر مرات صباحًا",
     icon: "heart",
@@ -160,6 +162,7 @@ const WIRDS = [
   // ———— المساء ————
   {
     id: "evening",
+    short: "المساء",
     title: "أذكار المساء",
     subtitle: "من العصر حتى الليل",
     icon: "moon",
@@ -168,6 +171,7 @@ const WIRDS = [
   },
   {
     id: "salawat_pm",
+    short: "صلاة ﷺ م",
     title: "الصلاة على النبي ﷺ",
     subtitle: "عشر مرات مساءً",
     icon: "heart",
@@ -178,6 +182,7 @@ const WIRDS = [
   // ———— طوال اليوم ————
   {
     id: "tahlil",
+    short: "التهليل",
     title: "التهليل",
     subtitle: "مئة مرة",
     icon: "star",
@@ -195,6 +200,7 @@ const WIRDS = [
   },
   {
     id: "tasbih",
+    short: "التسبيح",
     title: "التسبيح",
     subtitle: "سبحان الله وبحمده · مئة مرة",
     icon: "beads",
@@ -211,6 +217,7 @@ const WIRDS = [
   },
   {
     id: "istighfar",
+    short: "الاستغفار",
     title: "جولة الاستغفار",
     subtitle: "سبع محطات متتالية",
     icon: "drop",
@@ -267,6 +274,7 @@ const WIRDS = [
   },
   {
     id: "quran",
+    short: "القرآن",
     type: "quran",
     title: "ورد القرآن",
     subtitle: "صفحتان يوميًا · صباحًا أو مساءً",

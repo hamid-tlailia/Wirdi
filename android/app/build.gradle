@@ -15,8 +15,8 @@ android {
         applicationId "com.wirdi.app"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1"
     }
 
     signingConfigs {
@@ -54,7 +54,7 @@ android {
 // نسخ تطبيق الويب (من جذر المستودع) داخل التطبيق
 def syncWeb = tasks.register("syncWeb", Sync) {
     from(rootProject.file("..")) {
-        include "index.html", "styles.css", "app.js", "data.js", "icons/**", "fonts/**"
+        include "index.html", "styles.css", "app.js", "data.js", "prayer.js", "icons/**", "fonts/**"
     }
     into "$buildDir/generated/webAssets/www"
 }
