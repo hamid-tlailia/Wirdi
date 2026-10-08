@@ -61,15 +61,16 @@ public class WirdiWidget extends AppWidgetProvider {
         RemoteViews v = new RemoteViews(ctx.getPackageName(), R.layout.widget);
         v.setOnClickPendingIntent(R.id.w_root, openApp(ctx));
 
-        long nextRefresh = renderPrayer(v, st);
-        renderStats(v, st);
+        WirdiStore.TimeInfo ti = st.timeInfo(System.currentTimeMillis());
+        long nextRefresh = renderPrayer(v, st, ti);
+        renderStats(v, st, ti);
 
         mgr.updateAppWidget(ids, v);
-        scheduleRefresh(ctx, nextRefresh);
+        scheduleRefresh(ctx, st, nextRefresh);
     }
 
     // ———— الصلاة القادمة ————
-    private static long renderPrayer(RemoteViews v, WirdiStore st) {
+    private static long renderPrayer(RemoteViews v, WirdiStore st, WirdiStore.TimeInfo ti) {
         JSONObject p = st.prayerSettings();
         long now = System.currentTimeMillis();
         if (p == null || !p.has("lat")) {
@@ -85,7 +86,19 @@ public class WirdiWidget extends AppWidgetProvider {
             return Long.MAX_VALUE;
         }
         String city = p.optString("city", "");
-        v.setTextViewText(R.id.w_p_label, city.isEmpty() ? "الصلاة القادمة" : "الصلاة القادمة · " + city);
+        if (ti.period.equals("night")) {
+            // الفراغ بين العشاء والفجر: ترغيب في قيام الليل
+            Calendar lt = Calendar.getInstance();
+            lt.setTimeInMillis(ti.lastThird);
+            String hhmm = String.format(Locale.US, "%02d:%02d", lt.get(Calendar.HOUR_OF_DAY), lt.get(Calendar.MINUTE));
+            v.setTextViewText(R.id.w_p_label, now >= ti.lastThird
+                    ? "☾ أنت في الثلث الأخير — قم ولو بركعتين"
+                    : "☾ قيام الليل · الثلث الأخير " + hhmm);
+            v.setTextColor(R.id.w_p_label, C_PARTIAL);
+        } else {
+            v.setTextViewText(R.id.w_p_label, city.isEmpty() ? "الصلاة القادمة" : "الصلاة القادمة · " + city);
+            v.setTextColor(R.id.w_p_label, C_MUTED);
+        }
         v.setTextViewText(R.id.w_p_name, nx.name);
         Calendar c = Calendar.getInstance();
         c.setTimeInMillis(nx.at);
@@ -94,11 +107,13 @@ public class WirdiWidget extends AppWidgetProvider {
         v.setViewVisibility(R.id.w_p_left, View.VISIBLE);
         v.setChronometer(R.id.w_p_left, SystemClock.elapsedRealtime() + (nx.at - now), "بعد %s", true);
         v.setChronometerCountDown(R.id.w_p_left, true);
-        return nx.at + 5000;
+        long t = nx.at + 5000;
+        if (ti.period.equals("night") && ti.lastThird > now) t = Math.min(t, ti.lastThird + 5000);
+        return t;
     }
 
     // ———— إحصائيات الأوراد ————
-    private static void renderStats(RemoteViews v, WirdiStore st) {
+    private static void renderStats(RemoteViews v, WirdiStore st, WirdiStore.TimeInfo ti) {
         if (!st.hasMeta()) {
             v.setProgressBar(R.id.w_ring, 100, 0, false);
             v.setTextViewText(R.id.w_pct, "");
@@ -110,7 +125,7 @@ public class WirdiWidget extends AppWidgetProvider {
         v.setProgressBar(R.id.w_ring, 100, pct, false);
         v.setTextViewText(R.id.w_pct, pct + "%");
 
-        String per = WirdiStore.currentPeriod();
+        String per = ti.period;
         List<String> missing = new ArrayList<>();
         boolean eveningLeft = false;
         for (int i = 0; i < CHIPS.length; i++) {
@@ -123,8 +138,10 @@ public class WirdiWidget extends AppWidgetProvider {
             String wp = w.optString("period");
             boolean done = st.isDone(w);
             boolean started = st.fraction(w) > 0;
-            boolean due = wp.equals("day") || wp.equals(per) || (wp.equals("morning") && per.equals("evening"));
-            boolean missed = !done && wp.equals("morning") && per.equals("evening");
+            // فات وقته: الصباح بعد العصر، والمساء بعد العشاء
+            boolean missed = !done && ((wp.equals("morning") && !per.equals("morning"))
+                    || (wp.equals("evening") && per.equals("night")));
+            boolean due = wp.equals("day") || wp.equals(per) || missed;
 
             int bg, color;
             String label;
@@ -147,7 +164,7 @@ public class WirdiWidget extends AppWidgetProvider {
             status = "ينقصك: " + String.join(" · ", missing);
             v.setTextColor(R.id.w_status, 0xFFFFD9A0);
         } else if (eveningLeft) {
-            status = "أحسنت! تبقّى أوراد المساء";
+            status = "أحسنت! أوراد المساء تبدأ مع العصر";
             v.setTextColor(R.id.w_status, C_DONE);
         } else {
             status = "أتممت أورادك اليوم — تقبّل الله ✓";
@@ -157,21 +174,18 @@ public class WirdiWidget extends AppWidgetProvider {
     }
 
     // ———— التحديث التلقائي: عند الصلاة القادمة، وبداية المساء (١٥:٠٠)، واليوم الجديد (٣:٠٠) ————
-    private static void scheduleRefresh(Context ctx, long prayerAt) {
-        long t = Math.min(prayerAt, Math.min(nextHour(WirdiStore.EVENING_HOUR), nextHour(WirdiStore.DAY_START_HOUR)));
+    // ———— التحديث التلقائي عند حدود الفترات (الفجر، العصر، العشاء) وعند كل صلاة ————
+    private static void scheduleRefresh(Context ctx, WirdiStore st, long prayerAt) {
+        long now = System.currentTimeMillis();
+        long t = prayerAt;
+        for (int add = 0; add < 2; add++) {
+            for (long b : st.dayTimes(WirdiStore.startOfDay(now, add))) {
+                if (b > now) t = Math.min(t, b + 5000);
+            }
+        }
         AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
-        if (am == null) return;
+        if (am == null || t == Long.MAX_VALUE) return;
         am.setAndAllowWhileIdle(AlarmManager.RTC, t, refreshIntent(ctx));
-    }
-
-    private static long nextHour(int hour) {
-        Calendar c = Calendar.getInstance();
-        c.set(Calendar.HOUR_OF_DAY, hour);
-        c.set(Calendar.MINUTE, 0);
-        c.set(Calendar.SECOND, 5);
-        c.set(Calendar.MILLISECOND, 0);
-        if (c.getTimeInMillis() <= System.currentTimeMillis()) c.add(Calendar.DAY_OF_MONTH, 1);
-        return c.getTimeInMillis();
     }
 
     private static PendingIntent refreshIntent(Context ctx) {

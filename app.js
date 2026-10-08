@@ -31,18 +31,38 @@ const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
 const AR = new Intl.NumberFormat("en-US", { useGrouping: false }); // أرقام عادية 123
 const n = (x) => AR.format(x);
-const DAY_START_HOUR = 3; // اليوم الجديد يبدأ الساعة 3 فجرًا
-const EVENING_HOUR = 15;  // بعد العصر تقريبًا
 const TOTAL_PAGES = 604;
 
-function dayKey(d = new Date()) {
-  const t = new Date(d.getTime() - DAY_START_HOUR * 3600e3);
-  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+/* ———— الفترات حسب أوقات الصلاة الحقيقية ————
+   الصباح: من الفجر إلى العصر · المساء: من العصر إلى العشاء · الليل: من العشاء إلى الفجر (قيام الليل)
+   يبدأ يوم الأوراد الجديد مع الفجر. */
+const FALLBACK_TIMES = { fajr: 4, asr: 15, maghrib: 18.5, isha: 20 }; // قبل تحديد الموقع
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const addDays = (d, k) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + k);
+const atHour = (d, h) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, Math.round(h * 60));
+
+function dayTimes(date) {
+  const p = S.settings.prayer;
+  const t = p && p.lat != null ? PrayerTimes.forDate(date, p.lat, p.lng, p.method) : FALLBACK_TIMES;
+  return { fajr: atHour(date, t.fajr), asr: atHour(date, t.asr), maghrib: atHour(date, t.maghrib), isha: atHour(date, t.isha) };
 }
-function currentPeriod() {
-  const h = new Date().getHours();
-  return h >= DAY_START_HOUR && h < EVENING_HOUR ? "morning" : "evening";
+function timeInfo(now = new Date()) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const t = dayTimes(today);
+  let period = "night", wirdDay = today, lastThird = null;
+  if (now < t.fajr) wirdDay = addDays(today, -1);
+  else if (now < t.asr) period = "morning";
+  else if (now < t.isha) period = "evening";
+  if (period === "night") {
+    const start = now < t.fajr ? addDays(today, -1) : today;
+    const mg = dayTimes(start).maghrib, fj = dayTimes(addDays(start, 1)).fajr;
+    lastThird = new Date(fj - (fj - mg) / 3);
+  }
+  return { period, wirdDay, key: ymd(wirdDay), lastThird };
 }
+const dayKey = () => timeInfo().key;
+const currentPeriod = () => timeInfo().period;
+const tabFor = (per) => (per === "night" ? "day" : per);
 const wirdById = (id) => WIRDS.find((w) => w.id === id);
 const totalOf = (w) => (w.type === "quran" ? 1 : w.steps.reduce((a, s) => a + s.count, 0));
 
@@ -51,7 +71,7 @@ const totalOf = (w) => (w.type === "quran" ? 1 : w.steps.reduce((a, s) => a + s.
 const NATIVE = window.WirdiNative || null;
 const KEY = "wirdi:v1";
 const DEFAULTS = {
-  day: dayKey(),
+  day: "",
   prog: {},
   quranPage: 0,
   history: {},
@@ -84,6 +104,7 @@ function pushMeta() {
 function rollover() {
   const today = dayKey();
   if (S.day === today) return false;
+  if (!S.day || today < S.day) { S.day = S.day || today; save(); return false; } // لا نرجع للخلف
   S.history[S.day] = Math.round(dayPercent() * 100);
   // الاحتفاظ بآخر 60 يومًا فقط
   const keys = Object.keys(S.history).sort();
@@ -109,11 +130,10 @@ function dayPercent() {
 }
 function streak() {
   let k = 0;
-  const d = new Date(Date.now() - DAY_START_HOUR * 3600e3);
+  const base = timeInfo().wirdDay;
   if (dayPercent() >= 1) k++;
-  for (;;) {
-    d.setDate(d.getDate() - 1);
-    const key = dayKey(new Date(d.getTime() + DAY_START_HOUR * 3600e3));
+  for (let i = 1; ; i++) {
+    const key = ymd(addDays(base, -i));
     if ((S.history[key] ?? 0) >= 100) k++;
     else break;
   }
@@ -131,7 +151,12 @@ function ringSVG(size, stroke, frac) {
 }
 
 /* ========= الشاشة الرئيسية ========= */
-let tab = currentPeriod();
+function isMissed(w) {
+  if (S.prog[w.id]?.done) return false;
+  const per = currentPeriod();
+  return (w.period === "morning" && per !== "morning") || (w.period === "evening" && per === "night");
+}
+let tab = tabFor(currentPeriod());
 
 function whereText(w) {
   const p = S.prog[w.id];
@@ -140,6 +165,7 @@ function whereText(w) {
     return { t: `التالي: صفحة ${n(nextPage(1))} و${n(nextPage(2))}` };
   }
   if (p?.done) return { t: "اكتمل — تقبّل الله", done: true };
+  if (isMissed(w)) return { t: "فات وقته — يمكنك قضاؤه", missed: true };
   if (!p || (p.s === 0 && p.c === 0)) {
     return { t: w.steps.length > 1 ? `${n(w.steps.length)} أذكار · لم تبدأ بعد` : `${n(w.steps[0].count)} مرة · لم تبدأ بعد` };
   }
@@ -154,8 +180,10 @@ function renderHome() {
   const greg = new Intl.DateTimeFormat("ar-u-nu-latn", { weekday: "long", day: "numeric", month: "long" }).format(now);
   $("#date-line").textContent = `${greg} · ${hijri}`;
 
-  const per = currentPeriod();
-  $("#greeting").textContent = per === "morning" ? "صباح الذكر والنور" : "مساء الطمأنينة";
+  const ti = timeInfo();
+  const per = ti.period;
+  $("#greeting").textContent = per === "morning" ? "صباح الذكر والنور" : per === "evening" ? "مساء الطمأنينة" : "ليلة مباركة";
+  renderNight(ti);
   const pct = dayPercent();
   const doneCount = WIRDS.filter((w) => S.prog[w.id]?.done).length;
   $("#hero-sub").textContent =
@@ -167,9 +195,8 @@ function renderHome() {
   // آخر 7 أيام
   const week = [];
   for (let i = 6; i >= 0; i--) {
-    const d = new Date(Date.now() - DAY_START_HOUR * 3600e3);
-    d.setDate(d.getDate() - i);
-    const key = dayKey(new Date(d.getTime() + DAY_START_HOUR * 3600e3));
+    const d = addDays(timeInfo().wirdDay, -i);
+    const key = ymd(d);
     const v = i === 0 ? Math.round(pct * 100) : S.history[key] ?? 0;
     const lbl = new Intl.DateTimeFormat("ar", { weekday: "narrow" }).format(d);
     week.push(`<div class="d ${i === 0 ? "today" : ""}"><span class="dot ${v >= 100 ? "full" : ""}" style="--p:${v}"></span>${lbl}</div>`);
@@ -228,7 +255,7 @@ function renderCards() {
     .map((w, i) => {
       const f = fraction(w);
       const wt = whereText(w);
-      return `<button class="card ${wt.done ? "done" : ""}" data-id="${w.id}" style="animation-delay:${i * 50}ms">
+      return `<button class="card ${wt.done ? "done" : ""} ${wt.missed ? "missed" : ""}" data-id="${w.id}" style="animation-delay:${i * 50}ms">
         <div class="ring mini ${wt.done ? "done" : ""}">${ringSVG(54, 7, f)}<div class="ring-label"><span class="ico">${icon(wt.done ? "check" : w.icon, wt.done ? 2.4 : 1.8)}</span></div></div>
         <div class="info">
           <h3>${w.title}</h3>
@@ -239,6 +266,30 @@ function renderCards() {
       </button>`;
     })
     .join("");
+}
+
+/* ========= قيام الليل ========= */
+const QIYAM = [
+  { t: "«ينزل ربنا تبارك وتعالى كل ليلة إلى السماء الدنيا حين يبقى ثلث الليل الآخر، يقول: من يدعوني فأستجيب له، من يسألني فأعطيه، من يستغفرني فأغفر له»", s: "متفق عليه" },
+  { t: "«أفضل الصلاة بعد الفريضة صلاة الليل»", s: "رواه مسلم" },
+  { t: "«عليكم بقيام الليل، فإنه دأب الصالحين قبلكم، وهو قربة إلى ربكم، ومكفرة للسيئات، ومنهاة للإثم»", s: "رواه الترمذي" },
+  { t: "«من قام بعشر آيات لم يُكتب من الغافلين، ومن قام بمئة آية كُتب من القانتين»", s: "رواه أبو داود" },
+  { t: "﴿تَتَجَافَىٰ جُنُوبُهُمْ عَنِ الْمَضَاجِعِ يَدْعُونَ رَبَّهُمْ خَوْفًا وَطَمَعًا﴾", s: "السجدة: 16" },
+  { t: "﴿وَبِالْأَسْحَارِ هُمْ يَسْتَغْفِرُونَ﴾", s: "الذاريات: 18" },
+  { t: "«أقرب ما يكون الرب من العبد في جوف الليل الآخر، فإن استطعت أن تكون ممن يذكر الله في تلك الساعة فكن»", s: "رواه الترمذي" },
+];
+function renderNight(ti) {
+  const card = $("#night-card");
+  card.hidden = ti.period !== "night";
+  if (card.hidden) return;
+  const q = QIYAM[ti.wirdDay.getDate() % QIYAM.length];
+  const now = new Date();
+  const when = now >= ti.lastThird ? "أنت الآن في الثلث الأخير من الليل" : `يبدأ الثلث الأخير من الليل ${hm(ti.lastThird)}`;
+  card.innerHTML = `
+    <div class="n-head"><span class="n-ico">${icon("moon")}</span>
+      <div><div class="n-title">وقت قيام الليل</div><div class="n-when">${when}</div></div></div>
+    <p class="n-quote">${q.t}</p>
+    <div class="n-foot"><span>${q.s}</span><span>ولو بركعتين</span></div>`;
 }
 
 /* ========= أوقات الصلاة ========= */
@@ -714,7 +765,7 @@ function bind() {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") return;
     if (NATIVE) S = load(); // ربما عدّ المستخدم من الويدجت
-    if (rollover()) { tab = currentPeriod(); closeSheet(); }
+    if (rollover()) { tab = tabFor(currentPeriod()); closeSheet(); }
     if (!openSheet) renderHome();
     if (openSheet === "#counter" && cur) { renderCounter(true); requestWake(); }
     if (openSheet === "#quran") renderQuran();

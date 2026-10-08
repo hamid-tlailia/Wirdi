@@ -20,8 +20,8 @@ import java.util.TreeSet;
  * { day, prog: {id: {s, c, done}}, quranPage, history: {day: pct}, settings }
  */
 final class WirdiStore {
-    static final int DAY_START_HOUR = 3;
-    static final int EVENING_HOUR = 15;
+    /** قبل تحديد الموقع: الفجر، العصر، المغرب، العشاء (بالساعات) */
+    static final double[] FALLBACK = {4, 15, 18.5, 20};
     static final int TOTAL_PAGES = 604;
 
     private static final String PREFS = "wirdi";
@@ -68,17 +68,63 @@ final class WirdiStore {
         return !wirds.isEmpty();
     }
 
-    // ———— الوقت ————
-    static String dayKey() {
-        Calendar c = Calendar.getInstance();
-        c.add(Calendar.HOUR_OF_DAY, -DAY_START_HOUR);
-        return String.format(Locale.US, "%04d-%02d-%02d",
-                c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH));
+    // ———— الوقت: الصباح من الفجر إلى العصر، المساء من العصر إلى العشاء، الليل من العشاء إلى الفجر ————
+    static final class TimeInfo {
+        String period;   // morning | evening | night
+        String key;      // يوم الأوراد (يبدأ مع الفجر)
+        long lastThird;  // بداية الثلث الأخير من الليل (في فترة الليل فقط)
     }
 
-    static String currentPeriod() {
-        int h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-        return h >= DAY_START_HOUR && h < EVENING_HOUR ? "morning" : "evening";
+    /** {fajr, asr, maghrib, isha} بالمللي ثانية ليوم معيّن */
+    long[] dayTimes(Calendar day) {
+        JSONObject p = prayerSettings();
+        double[] h;
+        if (p != null && p.has("lat")) {
+            double[] t = PrayerTimes.forDay(day, p.optDouble("lat"), p.optDouble("lng"), p.optString("method", "mwl"));
+            h = new double[]{t[0], t[2], t[3], t[4]};
+        } else {
+            h = FALLBACK;
+        }
+        long[] out = new long[4];
+        for (int i = 0; i < 4; i++) {
+            Calendar c = (Calendar) day.clone();
+            c.add(Calendar.MINUTE, (int) Math.round(h[i] * 60));
+            out[i] = c.getTimeInMillis();
+        }
+        return out;
+    }
+
+    static Calendar startOfDay(long ms, int addDays) {
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(ms);
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+        c.set(Calendar.MILLISECOND, 0);
+        c.add(Calendar.DAY_OF_MONTH, addDays);
+        return c;
+    }
+
+    TimeInfo timeInfo(long now) {
+        TimeInfo ti = new TimeInfo();
+        Calendar today = startOfDay(now, 0);
+        long[] t = dayTimes(today);
+        Calendar wirdDay = today;
+        ti.period = "night";
+        if (now < t[0]) wirdDay = startOfDay(now, -1);
+        else if (now < t[1]) ti.period = "morning";
+        else if (now < t[3]) ti.period = "evening";
+        if (ti.period.equals("night")) {
+            Calendar start = now < t[0] ? startOfDay(now, -1) : today;
+            long maghrib = dayTimes(start)[2];
+            Calendar next = (Calendar) start.clone();
+            next.add(Calendar.DAY_OF_MONTH, 1);
+            long fajr = dayTimes(next)[0];
+            ti.lastThird = fajr - (fajr - maghrib) / 3;
+        }
+        ti.key = String.format(Locale.US, "%04d-%02d-%02d",
+                wirdDay.get(Calendar.YEAR), wirdDay.get(Calendar.MONTH) + 1, wirdDay.get(Calendar.DAY_OF_MONTH));
+        return ti;
     }
 
     // ———— التقدّم ————
@@ -147,9 +193,10 @@ final class WirdiStore {
 
     /** بداية يوم جديد: يحفظ نسبة الأمس ويصفّر التقدّم */
     boolean rollover() {
-        String today = dayKey();
+        String today = timeInfo(System.currentTimeMillis()).key;
         String day = state.optString("day", "");
         if (today.equals(day)) return false;
+        if (!day.isEmpty() && today.compareTo(day) < 0) return false; // لا نرجع للخلف
         try {
             if (!day.isEmpty() && hasMeta()) {
                 JSONObject h = state.optJSONObject("history");

@@ -184,6 +184,27 @@ svg { display: block; }
 .prayer-card .p-left { font-size: 12.5px; color: var(--gold); font-weight: 500; padding: 5px 10px; border-radius: 10px; background: color-mix(in srgb, var(--gold) 12%, transparent); white-space: nowrap; }
 .prayer-card.empty .p-name { font-size: 14px; font-weight: 500; color: var(--text-2); }
 
+/* night card — قيام الليل */
+.night-card {
+  margin-top: 12px; padding: 16px 18px; border-radius: var(--radius); color: #EEF0FF;
+  background: radial-gradient(120% 90% at 85% 0%, #3a3270 0%, transparent 60%), linear-gradient(150deg, #121A3A, #1E2857 60%, #2c2558);
+  border: 1px solid rgba(255, 196, 107, .28); box-shadow: 0 16px 34px -18px rgba(18, 26, 58, .9);
+  position: relative; overflow: hidden;
+}
+.night-card::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image: radial-gradient(1px 1px at 20% 30%, #fff, transparent), radial-gradient(1px 1px at 70% 20%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 40% 70%, #fff, transparent), radial-gradient(1px 1px at 85% 60%, #fff, transparent),
+    radial-gradient(1px 1px at 10% 80%, #fff, transparent);
+}
+.night-card .n-head { display: flex; align-items: center; gap: 12px; position: relative; }
+.night-card .n-ico { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: rgba(255, 196, 107, .14); color: #FFC46B; flex: none; }
+.night-card .n-ico svg { width: 22px; height: 22px; }
+.night-card .n-title { font-size: 17px; font-weight: 600; }
+.night-card .n-when { font-size: 13px; color: #FFC46B; margin-top: 2px; }
+.night-card .n-quote { position: relative; margin: 12px 0 8px; font-family: var(--quran); font-size: 18px; line-height: 1.9; color: #E4E7FF; }
+.night-card .n-foot { position: relative; display: flex; justify-content: space-between; font-size: 12px; color: #A9B0D6; }
+
 /* continue card */
 .continue {
   width: 100%; margin-top: 14px; display: flex; align-items: center; gap: 14px; text-align: start;
@@ -252,6 +273,7 @@ svg { display: block; }
 .card .sub { margin: 3px 0 0; font-size: 12.5px; color: var(--muted); }
 .card .where { margin-top: 7px; font-size: 12.5px; color: var(--gold); font-weight: 500; display: flex; align-items: center; gap: 6px; }
 .card.done .where { color: var(--done); }
+.card.missed .where { color: #d9705f; }
 .card .where svg { width: 15px; height: 15px; }
 .card .chev { color: var(--muted); }
 .card .chev svg { width: 20px; height: 20px; transform: scaleX(-1); }
