@@ -151,7 +151,7 @@ const WIRDS = [
   },
   {
     id: "salawat_am",
-    short: "صلاة ﷺ ص",
+    short: "ﷺ صباحًا",
     title: "الصلاة على النبي ﷺ",
     subtitle: "عشر مرات صباحًا",
     icon: "heart",
@@ -171,7 +171,7 @@ const WIRDS = [
   },
   {
     id: "salawat_pm",
-    short: "صلاة ﷺ م",
+    short: "ﷺ مساءً",
     title: "الصلاة على النبي ﷺ",
     subtitle: "عشر مرات مساءً",
     icon: "heart",
@@ -182,7 +182,7 @@ const WIRDS = [
   // ———— طوال اليوم ————
   {
     id: "tahlil",
-    short: "التهليل",
+    short: "تهليل",
     title: "التهليل",
     subtitle: "مئة مرة",
     icon: "star",
@@ -200,7 +200,7 @@ const WIRDS = [
   },
   {
     id: "tasbih",
-    short: "التسبيح",
+    short: "تسبيح",
     title: "التسبيح",
     subtitle: "سبحان الله وبحمده · مئة مرة",
     icon: "beads",
@@ -217,7 +217,7 @@ const WIRDS = [
   },
   {
     id: "istighfar",
-    short: "الاستغفار",
+    short: "استغفار",
     title: "جولة الاستغفار",
     subtitle: "سبع محطات متتالية",
     icon: "drop",

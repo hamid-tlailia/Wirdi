@@ -74,15 +74,15 @@ public class WirdiWidget extends AppWidgetProvider {
         JSONObject p = st.prayerSettings();
         long now = System.currentTimeMillis();
         if (p == null || !p.has("lat")) {
-            v.setTextViewText(R.id.w_p_label, "أوقات الصلاة");
-            v.setTextViewText(R.id.w_p_name, "حدّد موقعك من الإعدادات");
+            v.setTextViewText(R.id.w_p_label, "أوقات الصلاة · من إعدادات التطبيق");
+            v.setTextViewText(R.id.w_p_name, "حدّد موقعك");
             v.setTextViewText(R.id.w_p_time, "");
-            v.setViewVisibility(R.id.w_p_left, View.GONE);
+            v.setViewVisibility(R.id.w_p_box, View.GONE);
             return Long.MAX_VALUE;
         }
         PrayerTimes.Status nx = PrayerTimes.status(p, now);
         if (nx == null) {
-            v.setViewVisibility(R.id.w_p_left, View.GONE);
+            v.setViewVisibility(R.id.w_p_box, View.GONE);
             return Long.MAX_VALUE;
         }
         String city = p.optString("city", "");
@@ -102,8 +102,9 @@ public class WirdiWidget extends AppWidgetProvider {
         }
         v.setTextViewText(R.id.w_p_name, nx.iqama ? "الإقامة" : nx.name);
         v.setTextViewText(R.id.w_p_time, hhmm(nx.at));
-        v.setViewVisibility(R.id.w_p_left, View.VISIBLE);
-        v.setChronometer(R.id.w_p_left, SystemClock.elapsedRealtime() + (nx.at - now), "بعد %s", true);
+        v.setViewVisibility(R.id.w_p_box, View.VISIBLE);
+        v.setTextViewText(R.id.w_p_cap, nx.iqama ? "حتى الإقامة" : "حتى الأذان");
+        v.setChronometer(R.id.w_p_left, SystemClock.elapsedRealtime() + (nx.at - now), "%s", true);
         v.setChronometerCountDown(R.id.w_p_left, true);
         long t = nx.at + 5000;
         if (ti.period.equals("night") && ti.lastThird > now) t = Math.min(t, ti.lastThird + 5000);
@@ -149,7 +150,7 @@ public class WirdiWidget extends AppWidgetProvider {
 
             int bg, color;
             String label;
-            if (done) { bg = R.drawable.chip_done; color = C_DONE; label = "✓ " + name; }
+            if (done) { bg = R.drawable.chip_done; color = C_DONE; label = name; }
             else if (missed) { bg = R.drawable.chip_missed; color = C_MISSED; label = name; }
             else if (started) { bg = R.drawable.chip_partial; color = C_PARTIAL; label = name; }
             else { bg = R.drawable.chip_todo; color = due ? C_TEXT : C_MUTED; label = name; }
