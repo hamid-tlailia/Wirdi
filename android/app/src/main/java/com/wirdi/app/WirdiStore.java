@@ -183,15 +183,4 @@ final class WirdiStore {
         JSONObject s = state.optJSONObject("settings");
         return s == null || s.optBoolean("vibrate", true);
     }
-
-    // ———— أرقام عربية ————
-    static String ar(int n) {
-        return ar(String.valueOf(n));
-    }
-
-    static String ar(String s) {
-        StringBuilder b = new StringBuilder();
-        for (char ch : s.toCharArray()) b.append(ch >= '0' && ch <= '9' ? (char) ('٠' + (ch - '0')) : ch);
-        return b.toString();
-    }
 }

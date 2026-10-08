@@ -89,8 +89,8 @@ public class WirdiWidget extends AppWidgetProvider {
         v.setTextViewText(R.id.w_p_name, nx.name);
         Calendar c = Calendar.getInstance();
         c.setTimeInMillis(nx.at);
-        v.setTextViewText(R.id.w_p_time, WirdiStore.ar(String.format(Locale.US, "%02d:%02d",
-                c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE))));
+        v.setTextViewText(R.id.w_p_time, String.format(Locale.US, "%02d:%02d",
+                c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE)));
         v.setViewVisibility(R.id.w_p_left, View.VISIBLE);
         v.setChronometer(R.id.w_p_left, SystemClock.elapsedRealtime() + (nx.at - now), "بعد %s", true);
         v.setChronometerCountDown(R.id.w_p_left, true);
@@ -108,7 +108,7 @@ public class WirdiWidget extends AppWidgetProvider {
         }
         int pct = (int) Math.round(st.dayPercent() * 100);
         v.setProgressBar(R.id.w_ring, 100, pct, false);
-        v.setTextViewText(R.id.w_pct, WirdiStore.ar(pct) + "٪");
+        v.setTextViewText(R.id.w_pct, pct + "%");
 
         String per = WirdiStore.currentPeriod();
         List<String> missing = new ArrayList<>();

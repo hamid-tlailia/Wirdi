@@ -431,6 +431,19 @@ svg { display: block; }
 .install-help b { color: var(--text); }
 .about { text-align: center; font-size: 12px; color: var(--muted); line-height: 1.8; margin: 8px 0 0; }
 
+/* modal */
+.modal {
+  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px;
+  background: rgba(0, 0, 0, .55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  animation: sheetIn .2s both;
+}
+.modal-card {
+  width: min(340px, 100%); padding: 22px 20px 16px; border-radius: 24px; text-align: center;
+  background: var(--surface-solid); border: 1px solid var(--border-strong); box-shadow: var(--shadow);
+}
+.modal-card p { margin: 0 0 18px; font-size: 16px; line-height: 1.8; }
+.modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
 /* toast */
 .toast {
   position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 74px); z-index: 50;

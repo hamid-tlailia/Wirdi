@@ -219,9 +219,19 @@
         <h4>البيانات</h4>
         <button class="btn ghost wide" id="reset-today">تصفير أوراد اليوم</button>
       </div>
-      <p class="about">يبدأ اليوم الجديد تلقائيًا الساعة ٣ فجرًا · كل البيانات محفوظة على جهازك فقط · يعمل دون إنترنت</p>
+      <p class="about">يبدأ اليوم الجديد تلقائيًا الساعة 3 فجرًا · كل البيانات محفوظة على جهازك فقط · يعمل دون إنترنت</p>
     </div>
   </section>
+
+  <div class="modal" id="modal" hidden role="alertdialog" aria-modal="true">
+    <div class="modal-card">
+      <p id="modal-msg"></p>
+      <div class="modal-actions">
+        <button class="btn ghost" id="modal-cancel">إلغاء</button>
+        <button class="btn gold" id="modal-ok">نعم</button>
+      </div>
+    </div>
+  </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 

@@ -29,9 +29,9 @@ const icon = (n, sw = 1.8) =>
 /* ========= أدوات ========= */
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
-const AR = new Intl.NumberFormat("ar-EG");
+const AR = new Intl.NumberFormat("en-US", { useGrouping: false }); // أرقام عادية 123
 const n = (x) => AR.format(x);
-const DAY_START_HOUR = 3; // اليوم الجديد يبدأ الساعة ٣ فجرًا
+const DAY_START_HOUR = 3; // اليوم الجديد يبدأ الساعة 3 فجرًا
 const EVENING_HOUR = 15;  // بعد العصر تقريبًا
 const TOTAL_PAGES = 604;
 
@@ -85,7 +85,7 @@ function rollover() {
   const today = dayKey();
   if (S.day === today) return false;
   S.history[S.day] = Math.round(dayPercent() * 100);
-  // الاحتفاظ بآخر ٦٠ يومًا فقط
+  // الاحتفاظ بآخر 60 يومًا فقط
   const keys = Object.keys(S.history).sort();
   while (keys.length > 60) delete S.history[keys.shift()];
   S.day = today;
@@ -150,8 +150,8 @@ function whereText(w) {
 
 function renderHome() {
   const now = new Date();
-  const hijri = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", { day: "numeric", month: "long", year: "numeric" }).format(now);
-  const greg = new Intl.DateTimeFormat("ar", { weekday: "long", day: "numeric", month: "long" }).format(now);
+  const hijri = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura-nu-latn", { day: "numeric", month: "long", year: "numeric" }).format(now);
+  const greg = new Intl.DateTimeFormat("ar-u-nu-latn", { weekday: "long", day: "numeric", month: "long" }).format(now);
   $("#date-line").textContent = `${greg} · ${hijri}`;
 
   const per = currentPeriod();
@@ -164,7 +164,7 @@ function renderHome() {
   const sk = streak();
   $("#streak").innerHTML = sk > 0 ? `${icon("flame")} ${n(sk)} ${sk === 1 ? "يوم" : sk === 2 ? "يومان" : sk <= 10 ? "أيام" : "يومًا"} متتالية` : `${icon("sparkle")} ابدأ سلسلتك اليوم`;
 
-  // آخر ٧ أيام
+  // آخر 7 أيام
   const week = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(Date.now() - DAY_START_HOUR * 3600e3);
@@ -178,7 +178,7 @@ function renderHome() {
 
   $("#day-ring").innerHTML =
     ringSVG(112, 9, pct) +
-    `<div class="ring-label"><div><div class="pct">${n(Math.round(pct * 100))}<small>٪</small></div><span class="cap">ورد اليوم</span></div></div>`;
+    `<div class="ring-label"><div><div class="pct">${n(Math.round(pct * 100))}<small>%</small></div><span class="cap">ورد اليوم</span></div></div>`;
 
   // تابع من حيث توقفت
   const next = nextWird();
@@ -243,7 +243,7 @@ function renderCards() {
 
 /* ========= أوقات الصلاة ========= */
 const pr = () => S.settings.prayer || null;
-const hm = (d) => n(d.getHours()).padStart(2, "٠") + ":" + n(d.getMinutes()).padStart(2, "٠");
+const hm = (d) => n(d.getHours()).padStart(2, "0") + ":" + n(d.getMinutes()).padStart(2, "0");
 function inText(ms) {
   const mins = Math.max(1, Math.round(ms / 60000));
   const h = Math.floor(mins / 60), m = mins % 60;
@@ -454,7 +454,7 @@ function renderQuran() {
   const read = S.quranPage % TOTAL_PAGES || (S.quranPage ? TOTAL_PAGES : 0);
   $("#q-bar").style.width = `${(read / TOTAL_PAGES) * 100}%`;
   const left = Math.ceil((TOTAL_PAGES - read) / w.pages);
-  $("#q-khatma").textContent = read ? `قرأت ${n(read)} من ${n(TOTAL_PAGES)} صفحة · تبقّى ${n(left)} يومًا للختمة` : "ابدأ ختمتك: صفحتان كل يوم = ختمة كل ١٠ أشهر تقريبًا";
+  $("#q-khatma").textContent = read ? `قرأت ${n(read)} من ${n(TOTAL_PAGES)} صفحة · تبقّى ${n(left)} يومًا للختمة` : "ابدأ ختمتك: صفحتان كل يوم = ختمة كل 10 أشهر تقريبًا";
   const btn = $("#q-done");
   btn.textContent = done ? "تراجع عن الإتمام" : `قرأت الصفحتين ${n(a)}–${n(b)}`;
   btn.className = done ? "btn ghost wide" : "btn gold wide";
@@ -564,6 +564,20 @@ window.addEventListener("beforeinstallprompt", (e) => {
 });
 window.addEventListener("appinstalled", () => { deferredPrompt = null; maybeShowInstallBanner(); toast("تم التثبيت — بارك الله فيك"); });
 
+/* ========= نافذة تأكيد (بديل confirm الذي لا يعمل في WebView) ========= */
+function ask(msg, okLabel = "نعم") {
+  return new Promise((resolve) => {
+    const m = $("#modal");
+    $("#modal-msg").textContent = msg;
+    $("#modal-ok").textContent = okLabel;
+    m.hidden = false;
+    const close = (v) => { m.hidden = true; m.onclick = null; resolve(v); };
+    $("#modal-ok").onclick = (e) => { e.stopPropagation(); close(true); };
+    $("#modal-cancel").onclick = (e) => { e.stopPropagation(); close(false); };
+    m.onclick = (e) => { if (e.target === m) close(false); };
+  });
+}
+
 /* ========= Toast ========= */
 let toastT;
 function toast(msg) {
@@ -640,8 +654,8 @@ function bind() {
     vibrate([30, 60, 30]);
     setTimeout(nextStep, 250);
   };
-  $("#c-menu").onclick = () => {
-    if (!confirm("إعادة هذا الورد من البداية؟")) return;
+  $("#c-menu").onclick = async () => {
+    if (!(await ask("إعادة هذا الورد من البداية؟", "إعادة"))) return;
     Object.assign(P(cur.id), { s: 0, c: 0, done: false });
     save();
     renderCounter(true);
@@ -683,8 +697,8 @@ function bind() {
   $("#set-vibrate").onchange = (e) => { S.settings.vibrate = e.target.checked; save(); if (e.target.checked) vibrate(20); };
   $("#set-auto").onchange = (e) => { S.settings.auto = e.target.checked; save(); };
   $("#set-wake").onchange = (e) => { S.settings.wake = e.target.checked; save(); };
-  $("#reset-today").onclick = () => {
-    if (!confirm("تصفير تقدّم أوراد اليوم؟ (لن يتغيّر موضعك في القرآن)")) return;
+  $("#reset-today").onclick = async () => {
+    if (!(await ask("تصفير تقدّم أوراد اليوم؟ لن يتغيّر موضعك في القرآن.", "تصفير"))) return;
     S.prog = {};
     save();
     toast("تم التصفير");
