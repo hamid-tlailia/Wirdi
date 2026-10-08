@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">وِردي</string>
+    <string name="widget_name">وِردي — عدّاد الأذكار</string>
+    <string name="widget_desc">عُدّ أذكارك من الشاشة الرئيسية وتابع أين وصلت</string>
+</resources>

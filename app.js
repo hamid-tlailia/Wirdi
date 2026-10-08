@@ -45,6 +45,8 @@ const wirdById = (id) => WIRDS.find((w) => w.id === id);
 const totalOf = (w) => (w.type === "quran" ? 1 : w.steps.reduce((a, s) => a + s.count, 0));
 
 /* ========= الحالة ========= */
+// داخل تطبيق أندرويد: الحالة تُحفظ عند التطبيق الأصلي لتشاركها مع الويدجت
+const NATIVE = window.WirdiNative || null;
 const KEY = "wirdi:v1";
 const DEFAULTS = {
   day: dayKey(),
@@ -57,13 +59,25 @@ let S = load();
 
 function load() {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY));
+    const nat = NATIVE && NATIVE.getState();
+    const raw = JSON.parse(nat || localStorage.getItem(KEY));
     if (raw) return { ...DEFAULTS, ...raw, settings: { ...DEFAULTS.settings, ...raw.settings } };
   } catch (e) {}
   return structuredClone(DEFAULTS);
 }
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  const json = JSON.stringify(S);
+  try { localStorage.setItem(KEY, json); } catch (e) {}
+  if (NATIVE) try { NATIVE.saveState(json); } catch (e) {}
+}
+// وصف مختصر للأوراد يحتاجه الويدجت
+function pushMeta() {
+  if (!NATIVE) return;
+  const meta = WIRDS.map((w) => ({
+    id: w.id, title: w.title, period: w.period, type: w.type || "dhikr", pages: w.pages || 0,
+    steps: (w.steps || []).map((st) => ({ title: st.title, count: st.count })),
+  }));
+  try { NATIVE.setMeta(JSON.stringify(meta)); } catch (e) {}
 }
 function rollover() {
   const today = dayKey();
@@ -339,14 +353,18 @@ function showDone() {
 }
 
 function vibrate(pat) {
-  if (S.settings.vibrate && navigator.vibrate) navigator.vibrate(pat);
+  if (!S.settings.vibrate) return;
+  if (NATIVE) { try { NATIVE.vibrate(JSON.stringify([].concat(pat))); } catch (e) {} return; }
+  if (navigator.vibrate) navigator.vibrate(pat);
 }
 
 async function requestWake() {
+  if (NATIVE) { if (S.settings.wake) try { NATIVE.keepScreenOn(true); } catch (e) {} return; }
   if (!S.settings.wake || !("wakeLock" in navigator)) return;
   try { wakeLock = await navigator.wakeLock.request("screen"); } catch (e) {}
 }
 function releaseWake() {
+  if (NATIVE) try { NATIVE.keepScreenOn(false); } catch (e) {}
   wakeLock?.release?.();
   wakeLock = null;
 }
@@ -447,7 +465,7 @@ function renderSettings() {
 
 /* ========= التثبيت ========= */
 let deferredPrompt = null;
-const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+const isStandalone = () => !!NATIVE || matchMedia("(display-mode: standalone)").matches || navigator.standalone;
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 function renderInstallHelp() {
@@ -603,16 +621,20 @@ function bind() {
   // تجديد اليوم عند العودة للتطبيق
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") return;
+    if (NATIVE) S = load(); // ربما عدّ المستخدم من الويدجت
     if (rollover()) { tab = currentPeriod(); closeSheet(); }
     if (!openSheet) renderHome();
-    if (openSheet === "#counter") requestWake();
+    if (openSheet === "#counter" && cur) { renderCounter(true); requestWake(); }
+    if (openSheet === "#quran") renderQuran();
   });
   matchMedia("(prefers-color-scheme: light)").addEventListener?.("change", applySettings);
 }
 
 /* ========= تشغيل ========= */
 applySettings();
+pushMeta();
 rollover();
+save();
 bind();
 renderHome();
 maybeShowInstallBanner();
@@ -621,6 +643,6 @@ maybeShowInstallBanner();
 const qp = new URLSearchParams(location.search).get("w");
 if (qp && wirdById(qp)) openWird(qp);
 
-if ("serviceWorker" in navigator) {
+if (!NATIVE && "serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 }

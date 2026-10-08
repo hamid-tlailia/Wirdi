@@ -1,5 +1,5 @@
 // عامل الخدمة: يجعل التطبيق يعمل دون إنترنت
-const CACHE = "wirdi-v1";
+const CACHE = "wirdi-v2";
 const ASSETS = [
   "./",
   "index.html",
@@ -11,6 +11,12 @@ const ASSETS = [
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/apple-touch-icon.png",
+  "fonts/Amiri-Regular.ttf",
+  "fonts/Amiri-Bold.ttf",
+  "fonts/IBMPlexSansArabic-Regular.ttf",
+  "fonts/IBMPlexSansArabic-Medium.ttf",
+  "fonts/IBMPlexSansArabic-SemiBold.ttf",
+  "fonts/IBMPlexSansArabic-Bold.ttf",
 ];
 
 self.addEventListener("install", (e) => {
@@ -30,17 +36,6 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
 
-  // الخطوط: من الذاكرة أولًا ثم الشبكة
-  if (url.hostname.endsWith("fonts.googleapis.com") || url.hostname.endsWith("fonts.gstatic.com")) {
-    e.respondWith(
-      caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(req, copy));
-        return res;
-      }))
-    );
-    return;
-  }
   if (url.origin !== location.origin) return;
 
   // ملفات التطبيق: الشبكة أولًا (للتحديثات) مع الرجوع للذاكرة دون إنترنت
