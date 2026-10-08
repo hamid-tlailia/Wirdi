@@ -83,6 +83,7 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         WirdiWidget.updateAll(this);
+        PrayerAlarms.schedule(this);
     }
 
     // ———— تحديد الموقع لأوقات الصلاة ————
@@ -214,6 +215,20 @@ public class MainActivity extends Activity {
                     else vib.vibrate(p, -1);
                 }
             } catch (Exception ignored) {
+            }
+        }
+
+        @JavascriptInterface
+        public void scheduleAlarms() {
+            PrayerAlarms.schedule(MainActivity.this);
+            runOnUiThread(() -> WirdiWidget.updateAll(MainActivity.this));
+        }
+
+        @JavascriptInterface
+        public void requestNotifications() {
+            if (Build.VERSION.SDK_INT >= 33
+                    && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
+                runOnUiThread(() -> requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 8));
             }
         }
 

@@ -43,7 +43,7 @@ const atHour = (d, h) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,
 
 function dayTimes(date) {
   const p = S.settings.prayer;
-  const t = p && p.lat != null ? PrayerTimes.forDate(date, p.lat, p.lng, p.method) : FALLBACK_TIMES;
+  const t = p && p.lat != null ? PrayerTimes.forDate(date, p.lat, p.lng, p.method, p.adj) : FALLBACK_TIMES;
   return { fajr: atHour(date, t.fajr), asr: atHour(date, t.asr), maghrib: atHour(date, t.maghrib), isha: atHour(date, t.isha) };
 }
 function timeInfo(now = new Date()) {
@@ -303,19 +303,23 @@ function inText(ms) {
 }
 function renderPrayer() {
   const card = $("#prayer-card"), p = pr();
-  const nx = p && p.lat != null && PrayerTimes.next(p.lat, p.lng, p.method);
+  const nx = p && p.lat != null && PrayerTimes.status(p);
   card.classList.toggle("empty", !nx);
+  card.classList.toggle("iqama", nx?.phase === "iqama");
   card.innerHTML = nx
-    ? `<span class="p-ico">${icon("mosque")}</span>
+    ? nx.phase === "iqama"
+      ? `<span class="p-ico">${icon("mosque")}</span>
+       <span class="p-txt"><div class="p-kicker">حان وقت ${nx.name} · أُذّن ${hm(nx.adhan)}</div><div class="p-name">الإقامة<b>${hm(nx.at)}</b></div></span>
+       <span class="p-left">${inText(nx.at - Date.now())}</span>`
+      : `<span class="p-ico">${icon("mosque")}</span>
        <span class="p-txt"><div class="p-kicker">الصلاة القادمة${p.city ? " · " + p.city : ""}</div><div class="p-name">${nx.name}<b>${hm(nx.at)}</b></div></span>
        <span class="p-left">${inText(nx.at - Date.now())}</span>`
     : `<span class="p-ico">${icon("pin")}</span><span class="p-txt"><div class="p-kicker">أوقات الصلاة</div><div class="p-name">حدّد موقعك لعرض الصلاة القادمة</div></span>`;
 }
 function setLocation(lat, lng, city) {
   S.settings.prayer = { ...(pr() || { method: "mwl" }), lat: +lat, lng: +lng, city: city || "" };
-  save();
-  renderPrayer();
-  renderPrayerSettings();
+  prayerChanged();
+  askNotifyPermission();
   toast("تم حفظ الموقع");
 }
 function renderPrayerSettings() {
@@ -325,14 +329,37 @@ function renderPrayerSettings() {
     sel.innerHTML = Object.entries(PRAYER_METHODS).map(([k, m]) => `<option value="${k}">${m.name}</option>`).join("");
   }
   sel.value = p?.method || "mwl";
-  if (p && p.lat != null) {
-    const t = PrayerTimes.forDate(new Date(), p.lat, p.lng, p.method);
-    const f = (h) => { const d = new Date(); d.setHours(0, Math.round(h * 60), 0, 0); return hm(d); };
-    $("#loc-status").innerHTML = `${p.city ? `<b>${p.city}</b> · ` : ""}<bdi dir="ltr">${p.lat.toFixed(3)}, ${p.lng.toFixed(3)}</bdi><br>` +
-      ["fajr", "dhuhr", "asr", "maghrib", "isha"].map((k) => `${PRAYER_NAMES[k]} ${f(t[k])}`).join(" · ");
+  const has = p && p.lat != null;
+  $("#ptable-wrap").hidden = !has;
+  $("#set-iqama-notify").checked = p?.notify !== false;
+  if (has) {
+    const today = new Date();
+    const t = PrayerTimes.forDate(today, p.lat, p.lng, p.method, p.adj);
+    const iq = { ...IQAMA_DEFAULT, ...(p.iqama || {}) };
+    $("#loc-status").innerHTML = `${p.city ? `<b>${p.city}</b> · ` : ""}<bdi dir="ltr">${p.lat.toFixed(3)}, ${p.lng.toFixed(3)}</bdi>`;
+    $("#ptable").innerHTML = `<div class="pt-h"><span>الصلاة</span><span>الأذان</span><span>تعديل (د)</span><span>الإقامة بعد (د)</span></div>` +
+      PRAYER_KEYS.map((k) => {
+        const adhan = PrayerTimes.toDate(today, t[k]);
+        return `<div class="pt-r"><span>${PRAYER_NAMES[k]}</span><b>${hm(adhan)}</b>
+          <input type="number" inputmode="numeric" data-k="${k}" data-f="adj" value="${Number(p.adj?.[k]) || 0}" min="-30" max="30">
+          <input type="number" inputmode="numeric" data-k="${k}" data-f="iqama" value="${Number(iq[k]) || 0}" min="0" max="90"></div>`;
+      }).join("");
     $("#lat").value = p.lat; $("#lng").value = p.lng;
   } else {
     $("#loc-status").textContent = "لم يُحدَّد الموقع بعد. تُحسب الأوقات على جهازك دون إنترنت.";
+  }
+}
+// بعد أي تغيير في إعدادات الصلاة: إعادة جدولة إشعار الإقامة وتحديث الويدجت
+function prayerChanged() {
+  save();
+  if (NATIVE && NATIVE.scheduleAlarms) try { NATIVE.scheduleAlarms(); } catch (e) {}
+  renderPrayer();
+  renderPrayerSettings();
+}
+function askNotifyPermission() {
+  const p = pr();
+  if (NATIVE && NATIVE.requestNotifications && p?.lat != null && p.notify !== false) {
+    try { NATIVE.requestNotifications(); } catch (e) {}
   }
 }
 function locate() {
@@ -735,7 +762,21 @@ function bind() {
   $("#loc-btn").onclick = locate;
   $("#method").onchange = (e) => {
     S.settings.prayer = { ...(pr() || {}), method: e.target.value };
-    save(); renderPrayerSettings(); renderPrayer();
+    prayerChanged();
+  };
+  $("#ptable").addEventListener("change", (e) => {
+    const inp = e.target.closest("input");
+    if (!inp) return;
+    const p = pr(), f = inp.dataset.f, k = inp.dataset.k;
+    const lim = f === "adj" ? [-30, 30] : [0, 90];
+    const v = Math.max(lim[0], Math.min(lim[1], Math.round(Number(inp.value) || 0)));
+    p[f] = { ...(f === "iqama" ? IQAMA_DEFAULT : {}), ...(p[f] || {}), [k]: v };
+    prayerChanged();
+  });
+  $("#set-iqama-notify").onchange = (e) => {
+    S.settings.prayer = { ...(pr() || {}), notify: e.target.checked };
+    prayerChanged();
+    if (e.target.checked) askNotifyPermission();
   };
   $("#loc-save").onclick = () => {
     const lat = parseFloat($("#lat").value), lng = parseFloat($("#lng").value);
@@ -776,6 +817,7 @@ function bind() {
 /* ========= تشغيل ========= */
 applySettings();
 pushMeta();
+askNotifyPermission();
 rollover();
 save();
 bind();

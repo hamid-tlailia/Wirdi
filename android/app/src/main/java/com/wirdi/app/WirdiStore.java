@@ -80,7 +80,7 @@ final class WirdiStore {
         JSONObject p = prayerSettings();
         double[] h;
         if (p != null && p.has("lat")) {
-            double[] t = PrayerTimes.forDay(day, p.optDouble("lat"), p.optDouble("lng"), p.optString("method", "mwl"));
+            double[] t = PrayerTimes.forDay(day, p);
             h = new double[]{t[0], t[2], t[3], t[4]};
         } else {
             h = FALLBACK;

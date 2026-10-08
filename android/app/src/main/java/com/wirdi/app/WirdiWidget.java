@@ -80,36 +80,40 @@ public class WirdiWidget extends AppWidgetProvider {
             v.setViewVisibility(R.id.w_p_left, View.GONE);
             return Long.MAX_VALUE;
         }
-        PrayerTimes.Next nx = PrayerTimes.next(p.optDouble("lat"), p.optDouble("lng"), p.optString("method", "mwl"), now);
+        PrayerTimes.Status nx = PrayerTimes.status(p, now);
         if (nx == null) {
             v.setViewVisibility(R.id.w_p_left, View.GONE);
             return Long.MAX_VALUE;
         }
         String city = p.optString("city", "");
-        if (ti.period.equals("night")) {
+        if (nx.iqama) {
+            // بين الأذان والإقامة: عدّ تنازلي حتى الإقامة
+            v.setTextViewText(R.id.w_p_label, "حان وقت " + nx.name + " · أُذّن " + hhmm(nx.adhan));
+            v.setTextColor(R.id.w_p_label, C_PARTIAL);
+        } else if (ti.period.equals("night")) {
             // الفراغ بين العشاء والفجر: ترغيب في قيام الليل
-            Calendar lt = Calendar.getInstance();
-            lt.setTimeInMillis(ti.lastThird);
-            String hhmm = String.format(Locale.US, "%02d:%02d", lt.get(Calendar.HOUR_OF_DAY), lt.get(Calendar.MINUTE));
             v.setTextViewText(R.id.w_p_label, now >= ti.lastThird
                     ? "☾ أنت في الثلث الأخير — قم ولو بركعتين"
-                    : "☾ قيام الليل · الثلث الأخير " + hhmm);
+                    : "☾ قيام الليل · الثلث الأخير " + hhmm(ti.lastThird));
             v.setTextColor(R.id.w_p_label, C_PARTIAL);
         } else {
             v.setTextViewText(R.id.w_p_label, city.isEmpty() ? "الصلاة القادمة" : "الصلاة القادمة · " + city);
             v.setTextColor(R.id.w_p_label, C_MUTED);
         }
-        v.setTextViewText(R.id.w_p_name, nx.name);
-        Calendar c = Calendar.getInstance();
-        c.setTimeInMillis(nx.at);
-        v.setTextViewText(R.id.w_p_time, String.format(Locale.US, "%02d:%02d",
-                c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE)));
+        v.setTextViewText(R.id.w_p_name, nx.iqama ? "الإقامة" : nx.name);
+        v.setTextViewText(R.id.w_p_time, hhmm(nx.at));
         v.setViewVisibility(R.id.w_p_left, View.VISIBLE);
         v.setChronometer(R.id.w_p_left, SystemClock.elapsedRealtime() + (nx.at - now), "بعد %s", true);
         v.setChronometerCountDown(R.id.w_p_left, true);
         long t = nx.at + 5000;
         if (ti.period.equals("night") && ti.lastThird > now) t = Math.min(t, ti.lastThird + 5000);
         return t;
+    }
+
+    static String hhmm(long ms) {
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(ms);
+        return String.format(Locale.US, "%02d:%02d", c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE));
     }
 
     // ———— إحصائيات الأوراد ————
@@ -183,9 +187,7 @@ public class WirdiWidget extends AppWidgetProvider {
                 if (b > now) t = Math.min(t, b + 5000);
             }
         }
-        AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
-        if (am == null || t == Long.MAX_VALUE) return;
-        am.setAndAllowWhileIdle(AlarmManager.RTC, t, refreshIntent(ctx));
+        if (t != Long.MAX_VALUE) PrayerAlarms.setExact(ctx, t, refreshIntent(ctx));
     }
 
     private static PendingIntent refreshIntent(Context ctx) {

@@ -1,5 +1,7 @@
 package com.wirdi.app;
 
+import org.json.JSONObject;
+
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -7,6 +9,8 @@ import java.util.TimeZone;
 final class PrayerTimes {
     static final String[] KEYS = {"fajr", "dhuhr", "asr", "maghrib", "isha"};
     static final String[] NAMES = {"الفجر", "الظهر", "العصر", "المغرب", "العشاء"};
+    /** دقائق الانتظار بين الأذان والإقامة (الافتراضي) */
+    static final int[] IQAMA_DEFAULT = {25, 20, 25, 10, 20};
 
     /** {fajr, isha, ishaMinutes} — ishaMinutes > 0 يعني العشاء بعد المغرب بدقائق ثابتة */
     static double[] method(String key) {
@@ -24,10 +28,12 @@ final class PrayerTimes {
         }
     }
 
-    static final class Next {
-        final String name;
-        final long at;
-        Next(String name, long at) { this.name = name; this.at = at; }
+    /** الحالة الآن: iqama = بين الأذان والإقامة (at = وقت الإقامة)، وإلا at = الأذان القادم */
+    static final class Status {
+        boolean iqama;
+        int index;
+        String name;
+        long adhan, at;
     }
 
     private static double rad(double d) { return Math.toRadians(d); }
@@ -51,7 +57,14 @@ final class PrayerTimes {
         return new double[]{deg(Math.asin(Math.sin(rad(e)) * Math.sin(rad(L)))), q / 15 - RA};
     }
 
-    /** أوقات الصلوات الخمس بالساعات العشرية (توقيت الجهاز) */
+    /** أوقات الصلوات الخمس بالساعات العشرية (توقيت الجهاز)، مع التعديل اليدوي بالدقائق من الإعدادات */
+    static double[] forDay(Calendar day, JSONObject p) {
+        double[] t = forDay(day, p.optDouble("lat"), p.optDouble("lng"), p.optString("method", "mwl"));
+        JSONObject adj = p.optJSONObject("adj");
+        if (adj != null) for (int i = 0; i < KEYS.length; i++) t[i] += adj.optDouble(KEYS[i], 0) / 60.0;
+        return t;
+    }
+
     static double[] forDay(Calendar day, double lat, double lng, String methodKey) {
         double[] m = method(methodKey);
         int y = day.get(Calendar.YEAR), mo = day.get(Calendar.MONTH) + 1, d = day.get(Calendar.DAY_OF_MONTH);
@@ -87,22 +100,25 @@ final class PrayerTimes {
         return angleTime(jd, lat, angle, t, false);
     }
 
-    static Next next(double lat, double lng, String methodKey, long now) {
-        for (int add = 0; add < 2; add++) {
-            Calendar day = Calendar.getInstance();
-            day.setTimeInMillis(now);
-            day.set(Calendar.HOUR_OF_DAY, 0);
-            day.set(Calendar.MINUTE, 0);
-            day.set(Calendar.SECOND, 0);
-            day.set(Calendar.MILLISECOND, 0);
-            day.add(Calendar.DAY_OF_MONTH, add);
-            double[] t = forDay(day, lat, lng, methodKey);
+    static Status status(JSONObject p, long now) {
+        JSONObject iq = p.optJSONObject("iqama");
+        for (int add = -1; add < 2; add++) {
+            Calendar day = WirdiStore.startOfDay(now, add);
+            double[] t = forDay(day, p);
             for (int i = 0; i < t.length; i++) {
                 Calendar at = (Calendar) day.clone();
                 at.add(Calendar.MINUTE, (int) Math.round(t[i] * 60));
-                if (at.getTimeInMillis() > now) {
-                    String name = i == 1 && at.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY ? "الجمعة" : NAMES[i];
-                    return new Next(name, at.getTimeInMillis());
+                long adhan = at.getTimeInMillis();
+                int wait = iq == null ? IQAMA_DEFAULT[i] : iq.optInt(KEYS[i], IQAMA_DEFAULT[i]);
+                long iqama = adhan + wait * 60000L;
+                if (now < adhan || now < iqama) {
+                    Status s = new Status();
+                    s.iqama = now >= adhan;
+                    s.index = i;
+                    s.name = i == 1 && at.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY ? "الجمعة" : NAMES[i];
+                    s.adhan = adhan;
+                    s.at = s.iqama ? iqama : adhan;
+                    return s;
                 }
             }
         }

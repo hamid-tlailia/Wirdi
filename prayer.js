@@ -14,6 +14,9 @@ const PRAYER_METHODS = {
   france: { name: "فرنسا (12°)", fajr: 12, isha: 12 },
 };
 
+const PRAYER_KEYS = ["fajr", "dhuhr", "asr", "maghrib", "isha"];
+// دقائق الانتظار بين الأذان والإقامة (قابلة للتعديل من الإعدادات)
+const IQAMA_DEFAULT = { fajr: 25, dhuhr: 20, asr: 25, maghrib: 10, isha: 20 };
 const PRAYER_NAMES = { fajr: "الفجر", dhuhr: "الظهر", asr: "العصر", maghrib: "المغرب", isha: "العشاء" };
 
 const PrayerTimes = (() => {
@@ -37,7 +40,8 @@ const PrayerTimes = (() => {
   }
 
   /** أوقات يوم واحد بالساعات العشرية حسب التوقيت المحلي للجهاز */
-  function forDate(date, lat, lng, methodKey) {
+  // adj: تعديل يدوي بالدقائق لكل صلاة لمطابقة التقويم المحلي
+  function forDate(date, lat, lng, methodKey, adj = {}) {
     const m = PRAYER_METHODS[methodKey] || PRAYER_METHODS.mwl;
     const y = date.getFullYear(), mo = date.getMonth() + 1, d = date.getDate();
     const tz = -new Date(y, mo - 1, d, 12).getTimezoneOffset() / 60;
@@ -66,29 +70,30 @@ const PrayerTimes = (() => {
     t.isha = m.ishaMin ? t.maghrib + m.ishaMin / 60 : angleTime(m.isha, 18);
     for (const k in t) t[k] += tz - lng / 15;
     t.dhuhr += 1 / 60; // احتياط دقيقة بعد الزوال
+    for (const k of PRAYER_KEYS) t[k] += (Number(adj[k]) || 0) / 60;
     return t;
   }
 
-  const toDate = (base, h) => {
-    const dt = new Date(base.getFullYear(), base.getMonth(), base.getDate());
-    return new Date(dt.getTime() + Math.round(h * 60) * 60000);
-  };
+  const toDate = (base, h) => new Date(base.getFullYear(), base.getMonth(), base.getDate(), 0, Math.round(h * 60));
+  const nameOf = (k, at) => (k === "dhuhr" && at.getDay() === 5 ? "الجمعة" : PRAYER_NAMES[k]);
 
-  /** الصلاة القادمة: { key, name, at: Date } */
-  function next(lat, lng, methodKey, now = new Date()) {
-    for (let add = 0; add < 2; add++) {
+  /** الحالة الآن (p = إعدادات الصلاة):
+   *  - بين الأذان والإقامة: { phase: "iqama", key, name, adhan, at: وقت الإقامة }
+   *  - غير ذلك: { phase: "adhan", key, name, at: وقت الأذان القادم } */
+  function status(p, now = new Date()) {
+    const iq = { ...IQAMA_DEFAULT, ...(p.iqama || {}) };
+    for (let add = -1; add < 2; add++) {
       const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + add);
-      const t = forDate(day, lat, lng, methodKey);
-      for (const k of ["fajr", "dhuhr", "asr", "maghrib", "isha"]) {
-        const at = toDate(day, t[k]);
-        if (at > now) {
-          const name = k === "dhuhr" && at.getDay() === 5 ? "الجمعة" : PRAYER_NAMES[k];
-          return { key: k, name, at };
-        }
+      const t = forDate(day, p.lat, p.lng, p.method, p.adj);
+      for (const k of PRAYER_KEYS) {
+        const adhan = toDate(day, t[k]);
+        const iqama = new Date(adhan.getTime() + (Number(iq[k]) || 0) * 60000);
+        if (now < adhan) return { phase: "adhan", key: k, name: nameOf(k, adhan), at: adhan };
+        if (now < iqama) return { phase: "iqama", key: k, name: nameOf(k, adhan), adhan, at: iqama };
       }
     }
     return null;
   }
 
-  return { forDate, next };
+  return { forDate, status, toDate };
 })();
