@@ -12,14 +12,18 @@ final class PrayerTimes {
     /** دقائق الانتظار بين الأذان والإقامة (الافتراضي) */
     static final int[] IQAMA_DEFAULT = {25, 20, 25, 10, 20};
 
-    /** {fajr, isha, ishaMinutes} — ishaMinutes > 0 يعني العشاء بعد المغرب بدقائق ثابتة */
+    /** {fajr, isha, ishaMinutes[, dhuhrMinutes]} — ishaMinutes > 0 يعني العشاء بعد المغرب بدقائق ثابتة؛
+     *  dhuhrMinutes احتياط بعد الزوال (دقيقة افتراضيًا) */
     static double[] method(String key) {
         switch (key == null ? "" : key) {
             case "tunisia": return new double[]{18, 18, 0};
             case "algeria": return new double[]{18, 17, 0};
             case "morocco": return new double[]{19, 17, 0};
             case "egypt": return new double[]{19.5, 17.5, 0};
+            case "qatar": return new double[]{18, 0, 90, 0};
             case "makkah": return new double[]{18.5, 0, 90};
+            case "uae": return new double[]{18.2, 18.2, 0};
+            case "kuwait": return new double[]{18, 17.5, 0};
             case "gulf": return new double[]{19.5, 0, 90};
             case "karachi": return new double[]{18, 18, 0};
             case "isna": return new double[]{15, 15, 0};
@@ -79,7 +83,7 @@ final class PrayerTimes {
         double maghrib = angleTime(jd, lat, 0.833, 18, false);
         double isha = m[2] > 0 ? maghrib + m[2] / 60 : angleTime(jd, lat, m[1], 18, false);
         double adj = tz - lng / 15;
-        return new double[]{fajr + adj, dhuhr + adj + 1 / 60.0, asr + adj, maghrib + adj, isha + adj};
+        return new double[]{fajr + adj, dhuhr + adj + (m.length > 3 ? m[3] : 1) / 60.0, asr + adj, maghrib + adj, isha + adj};
     }
 
     private static double mid(double jd, double t) {

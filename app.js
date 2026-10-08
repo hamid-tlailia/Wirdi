@@ -317,7 +317,7 @@ function renderPrayer() {
     : `<span class="p-ico">${icon("pin")}</span><span class="p-txt"><div class="p-kicker">أوقات الصلاة</div><div class="p-name">حدّد موقعك لعرض الصلاة القادمة</div></span>`;
 }
 function setLocation(lat, lng, city) {
-  S.settings.prayer = { ...(pr() || { method: "mwl" }), lat: +lat, lng: +lng, city: city || "" };
+  S.settings.prayer = { ...(pr() || { method: methodForZone() }), lat: +lat, lng: +lng, city: city || "" };
   prayerChanged();
   askNotifyPermission();
   toast("تم حفظ الموقع");
@@ -328,7 +328,8 @@ function renderPrayerSettings() {
   if (!sel.options.length) {
     sel.innerHTML = Object.entries(PRAYER_METHODS).map(([k, m]) => `<option value="${k}">${m.name}</option>`).join("");
   }
-  sel.value = p?.method || "mwl";
+  sel.value = p?.method || methodForZone();
+  $("#method-hint").textContent = p?.methodManual ? "" : "اختيرت تلقائيًا حسب منطقتك — يمكنك تغييرها";
   const has = p && p.lat != null;
   $("#ptable-wrap").hidden = !has;
   $("#set-iqama-notify").checked = p?.notify !== false;
@@ -761,7 +762,7 @@ function bind() {
   $("#prayer-card").onclick = () => { showSheet("#settings"); renderSettings(); if (pr()?.lat == null) setTimeout(() => $("#loc-btn").scrollIntoView({ block: "center" }), 50); };
   $("#loc-btn").onclick = locate;
   $("#method").onchange = (e) => {
-    S.settings.prayer = { ...(pr() || {}), method: e.target.value };
+    S.settings.prayer = { ...(pr() || {}), method: e.target.value, methodManual: true };
     prayerChanged();
   };
   $("#ptable").addEventListener("change", (e) => {
@@ -816,6 +817,10 @@ function bind() {
 
 /* ========= تشغيل ========= */
 applySettings();
+(function autoMethod() {
+  const p = S.settings.prayer;
+  if (p && !p.methodManual && p.method !== methodForZone()) { p.method = methodForZone(); save(); }
+})();
 pushMeta();
 askNotifyPermission();
 rollover();

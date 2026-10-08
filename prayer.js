@@ -7,12 +7,29 @@ const PRAYER_METHODS = {
   algeria: { name: "الجزائر", fajr: 18, isha: 17 },
   morocco: { name: "المغرب", fajr: 19, isha: 17 },
   egypt: { name: "الهيئة المصرية", fajr: 19.5, isha: 17.5 },
+  qatar: { name: "قطر (الأوقاف)", fajr: 18, ishaMin: 90, dhuhrMin: 0 },
   makkah: { name: "أم القرى (السعودية)", fajr: 18.5, ishaMin: 90 },
+  uae: { name: "الإمارات", fajr: 18.2, isha: 18.2 },
+  kuwait: { name: "الكويت", fajr: 18, isha: 17.5 },
   gulf: { name: "الخليج", fajr: 19.5, ishaMin: 90 },
   karachi: { name: "كراتشي", fajr: 18, isha: 18 },
   isna: { name: "أمريكا الشمالية", fajr: 15, isha: 15 },
   france: { name: "فرنسا (12°)", fajr: 12, isha: 12 },
 };
+
+// الطريقة المعتمدة حسب المنطقة الزمنية للجهاز (تُختار تلقائيًا ما لم يغيّرها المستخدم)
+const METHOD_BY_ZONE = {
+  "Asia/Qatar": "qatar", "Asia/Riyadh": "makkah", "Asia/Aden": "makkah", "Asia/Dubai": "uae", "Asia/Kuwait": "kuwait",
+  "Asia/Bahrain": "gulf", "Asia/Muscat": "gulf", "Africa/Tunis": "tunisia", "Africa/Algiers": "algeria",
+  "Africa/Casablanca": "morocco", "Africa/El_Aaiun": "morocco", "Africa/Cairo": "egypt", "Africa/Khartoum": "egypt",
+  "Africa/Tripoli": "egypt", "Asia/Karachi": "karachi", "Asia/Kolkata": "karachi", "Asia/Dhaka": "karachi",
+  "Europe/Paris": "france",
+};
+function methodForZone(tz = Intl.DateTimeFormat().resolvedOptions().timeZone) {
+  if (METHOD_BY_ZONE[tz]) return METHOD_BY_ZONE[tz];
+  if (/^America\//.test(tz)) return "isna";
+  return "mwl";
+}
 
 const PRAYER_KEYS = ["fajr", "dhuhr", "asr", "maghrib", "isha"];
 // دقائق الانتظار بين الأذان والإقامة (قابلة للتعديل من الإعدادات)
@@ -69,7 +86,7 @@ const PrayerTimes = (() => {
     };
     t.isha = m.ishaMin ? t.maghrib + m.ishaMin / 60 : angleTime(m.isha, 18);
     for (const k in t) t[k] += tz - lng / 15;
-    t.dhuhr += 1 / 60; // احتياط دقيقة بعد الزوال
+    t.dhuhr += (m.dhuhrMin ?? 1) / 60; // احتياط بعد الزوال (دقيقة افتراضيًا)
     for (const k of PRAYER_KEYS) t[k] += (Number(adj[k]) || 0) / 60;
     return t;
   }
