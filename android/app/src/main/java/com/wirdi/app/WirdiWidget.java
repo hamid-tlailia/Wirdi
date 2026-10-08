@@ -13,9 +13,7 @@ import android.widget.RemoteViews;
 
 import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.List;
 import java.util.Locale;
 
 /** ويدجت للعرض فقط: إحصائيات أوراد اليوم (ما اكتمل وما ينقص) مع الصلاة القادمة. العدّ داخل التطبيق. */
@@ -123,7 +121,6 @@ public class WirdiWidget extends AppWidgetProvider {
             v.setProgressBar(R.id.w_ring, 100, 0, false);
             v.setTextViewText(R.id.w_pct, "");
             for (int id : CHIPS) v.setViewVisibility(id, View.INVISIBLE);
-            v.setTextViewText(R.id.w_status, "افتح التطبيق مرة واحدة لعرض أورادك");
             return;
         }
         int pct = (int) Math.round(st.dayPercent() * 100);
@@ -131,8 +128,6 @@ public class WirdiWidget extends AppWidgetProvider {
         v.setTextViewText(R.id.w_pct, pct + "%");
 
         String per = ti.period;
-        List<String> missing = new ArrayList<>();
-        boolean eveningLeft = false;
         for (int i = 0; i < CHIPS.length; i++) {
             if (i >= st.wirds.size()) {
                 v.setViewVisibility(CHIPS[i], View.INVISIBLE);
@@ -155,27 +150,12 @@ public class WirdiWidget extends AppWidgetProvider {
             else if (started) { bg = R.drawable.chip_partial; color = C_PARTIAL; label = name; }
             else { bg = R.drawable.chip_todo; color = due ? C_TEXT : C_MUTED; label = name; }
 
-            if (!done && due) missing.add(name);
-            if (!done && !due) eveningLeft = true;
 
             v.setViewVisibility(CHIPS[i], View.VISIBLE);
             v.setTextViewText(CHIPS[i], label);
             v.setTextColor(CHIPS[i], color);
             v.setInt(CHIPS[i], "setBackgroundResource", bg);
         }
-
-        String status;
-        if (!missing.isEmpty()) {
-            status = "ينقصك: " + String.join(" · ", missing);
-            v.setTextColor(R.id.w_status, 0xFFFFD9A0);
-        } else if (eveningLeft) {
-            status = "أحسنت! أوراد المساء تبدأ مع العصر";
-            v.setTextColor(R.id.w_status, C_DONE);
-        } else {
-            status = "أتممت أورادك اليوم — تقبّل الله ✓";
-            v.setTextColor(R.id.w_status, C_DONE);
-        }
-        v.setTextViewText(R.id.w_status, status);
     }
 
     // ———— التحديث التلقائي: عند الصلاة القادمة، وبداية المساء (١٥:٠٠)، واليوم الجديد (٣:٠٠) ————
