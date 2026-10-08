@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>وِردي</title>
+  <meta name="description" content="وِردي — رفيقك اليومي للأذكار والأوراد: عدّاد ذكي يحفظ أين وصلت.">
+  <meta name="theme-color" content="#06140f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="وِردي">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bg-pattern" aria-hidden="true"></div>
+
+  <!-- ===== الشاشة الرئيسية ===== -->
+  <main id="home" class="home">
+    <header class="topbar">
+      <div class="brand">
+        <img src="icons/icon.svg" alt="" class="brand-logo">
+        <div>
+          <h1 class="brand-name">وِردي</h1>
+          <p class="brand-date" id="date-line"></p>
+        </div>
+      </div>
+      <button class="icon-btn" id="open-settings" aria-label="الإعدادات"></button>
+    </header>
+
+    <section class="hero">
+      <div class="hero-text">
+        <p class="greeting" id="greeting"></p>
+        <p class="hero-sub" id="hero-sub"></p>
+        <div class="streak" id="streak"></div>
+        <div class="week" id="week" aria-label="آخر سبعة أيام"></div>
+      </div>
+      <div class="ring big" id="day-ring"></div>
+    </section>
+
+    <button class="continue" id="continue" hidden></button>
+
+    <div class="install-banner" id="install-banner" hidden>
+      <span>ثبّت «وِردي» على شاشتك الرئيسية ليكون دائمًا بين يديك</span>
+      <div class="install-actions">
+        <button class="btn gold small" id="install-btn">تثبيت</button>
+        <button class="btn ghost small" id="install-dismiss" aria-label="إغلاق">لاحقًا</button>
+      </div>
+    </div>
+
+    <nav class="tabs" role="tablist" id="tabs">
+      <button role="tab" data-period="morning">الصباح</button>
+      <button role="tab" data-period="evening">المساء</button>
+      <button role="tab" data-period="day">طوال اليوم</button>
+      <span class="tab-glider" aria-hidden="true"></span>
+    </nav>
+
+    <section class="cards" id="cards"></section>
+
+    <footer class="foot">«أحبُّ الأعمال إلى الله أدومها وإن قلّ»</footer>
+  </main>
+
+  <!-- ===== شاشة العدّاد ===== -->
+  <section id="counter" class="sheet counter" hidden aria-modal="true" role="dialog">
+    <header class="sheet-head">
+      <button class="icon-btn" data-close aria-label="رجوع"></button>
+      <div class="sheet-title">
+        <h2 id="c-title"></h2>
+        <p id="c-step-label"></p>
+      </div>
+      <button class="icon-btn" id="c-menu" aria-label="خيارات"></button>
+    </header>
+
+    <div class="steps" id="c-steps"></div>
+
+    <article class="dhikr-card">
+      <h3 class="dhikr-title" id="c-dhikr-title"></h3>
+      <div class="dhikr-text" id="c-text"></div>
+      <details class="benefit" id="c-benefit-wrap">
+        <summary><span class="benefit-ico"></span> الفضل</summary>
+        <p id="c-benefit"></p>
+        <p class="source" id="c-source"></p>
+      </details>
+    </article>
+
+    <div class="tap-zone" id="tap-zone">
+      <button class="tap" id="tap" aria-label="اضغط للعدّ">
+        <svg class="tap-ring" viewBox="0 0 200 200" aria-hidden="true">
+          <circle cx="100" cy="100" r="90" class="track"/>
+          <circle cx="100" cy="100" r="90" class="bar" id="tap-bar"/>
+        </svg>
+        <span class="tap-count" id="tap-count">0</span>
+        <span class="tap-target" id="tap-target"></span>
+      </button>
+      <div class="tap-controls">
+        <button class="ctrl" id="c-undo"><span></span>تراجع</button>
+        <button class="ctrl" id="c-reset"><span></span>إعادة</button>
+        <button class="ctrl" id="c-skip"><span></span>أتممتُه</button>
+      </div>
+    </div>
+
+    <div class="done-overlay" id="c-done" hidden>
+      <div class="done-burst"></div>
+      <h3>تقبّل الله منك</h3>
+      <p id="c-done-sub"></p>
+      <div class="done-actions">
+        <button class="btn gold" id="c-next-wird">الورد التالي</button>
+        <button class="btn ghost" data-close>العودة</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== شاشة ورد القرآن ===== -->
+  <section id="quran" class="sheet quran" hidden aria-modal="true" role="dialog">
+    <header class="sheet-head">
+      <button class="icon-btn" data-close aria-label="رجوع"></button>
+      <div class="sheet-title">
+        <h2>ورد القرآن</h2>
+        <p>صفحتان كل يوم</p>
+      </div>
+      <span class="icon-btn ghosted"></span>
+    </header>
+    <div class="q-body">
+      <div class="q-book" aria-hidden="true">
+        <div class="q-page left"><span id="q-p1"></span></div>
+        <div class="q-page right"><span id="q-p2"></span></div>
+      </div>
+      <p class="q-label" id="q-label"></p>
+      <p class="q-juz" id="q-juz"></p>
+      <div class="q-progress"><div class="q-progress-bar" id="q-bar"></div></div>
+      <p class="q-khatma" id="q-khatma"></p>
+      <button class="btn gold wide" id="q-done"></button>
+      <div class="q-adjust">
+        <span>آخر صفحة قرأتها</span>
+        <div class="stepper">
+          <button id="q-minus" aria-label="نقص">−</button>
+          <input id="q-input" type="number" inputmode="numeric" min="0" max="604">
+          <button id="q-plus" aria-label="زيادة">+</button>
+        </div>
+      </div>
+      <details class="benefit">
+        <summary><span class="benefit-ico"></span> الفضل</summary>
+        <p id="q-benefit"></p>
+        <p class="source" id="q-source"></p>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===== الإعدادات ===== -->
+  <section id="settings" class="sheet settings" hidden aria-modal="true" role="dialog">
+    <header class="sheet-head">
+      <button class="icon-btn" data-close aria-label="رجوع"></button>
+      <div class="sheet-title"><h2>الإعدادات</h2></div>
+      <span class="icon-btn ghosted"></span>
+    </header>
+    <div class="set-body">
+      <div class="set-group">
+        <h4>المظهر</h4>
+        <div class="seg" id="set-theme">
+          <button data-v="auto">تلقائي</button>
+          <button data-v="dark">داكن</button>
+          <button data-v="light">فاتح</button>
+        </div>
+      </div>
+      <div class="set-group">
+        <h4>حجم خط الذكر</h4>
+        <div class="seg" id="set-scale">
+          <button data-v="0.9">صغير</button>
+          <button data-v="1">متوسط</button>
+          <button data-v="1.18">كبير</button>
+        </div>
+      </div>
+      <label class="set-row">
+        <span>الاهتزاز عند كل عدّة</span>
+        <input type="checkbox" id="set-vibrate" class="switch">
+      </label>
+      <label class="set-row">
+        <span>الانتقال التلقائي للذكر التالي</span>
+        <input type="checkbox" id="set-auto" class="switch">
+      </label>
+      <label class="set-row">
+        <span>إبقاء الشاشة مضاءة أثناء العدّ</span>
+        <input type="checkbox" id="set-wake" class="switch">
+      </label>
+
+      <div class="set-group">
+        <h4>التثبيت على الشاشة الرئيسية</h4>
+        <div class="install-help" id="install-help"></div>
+        <button class="btn gold wide" id="install-btn-2" hidden>تثبيت التطبيق الآن</button>
+      </div>
+
+      <div class="set-group">
+        <h4>البيانات</h4>
+        <button class="btn ghost wide" id="reset-today">تصفير أوراد اليوم</button>
+      </div>
+      <p class="about">يبدأ اليوم الجديد تلقائيًا الساعة ٣ فجرًا · كل البيانات محفوظة على جهازك فقط · يعمل دون إنترنت</p>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

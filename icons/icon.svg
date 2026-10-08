@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="75%">
+      <stop offset="0" stop-color="#11523f"/>
+      <stop offset="0.6" stop-color="#0a3328"/>
+      <stop offset="1" stop-color="#051c16"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6e2a8"/>
+      <stop offset="0.5" stop-color="#d4a94f"/>
+      <stop offset="1" stop-color="#a87a2a"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- tasbih bead ring -->
+  <g fill="url(#gold)" opacity="0.9">
+    <circle cx="256.0" cy="88.0" r="10"/>
+    <circle cx="287.8" cy="91.0" r="6.5"/>
+    <circle cx="318.4" cy="100.0" r="6.5"/>
+    <circle cx="346.8" cy="114.7" r="6.5"/>
+    <circle cx="371.9" cy="134.4" r="6.5"/>
+    <circle cx="392.8" cy="158.6" r="6.5"/>
+    <circle cx="408.8" cy="186.2" r="6.5"/>
+    <circle cx="419.3" cy="216.4" r="6.5"/>
+    <circle cx="423.8" cy="248.0" r="6.5"/>
+    <circle cx="422.3" cy="279.9" r="6.5"/>
+    <circle cx="414.8" cy="310.9" r="6.5"/>
+    <circle cx="401.5" cy="340.0" r="10"/>
+    <circle cx="383.0" cy="366.0" r="6.5"/>
+    <circle cx="359.9" cy="388.1" r="6.5"/>
+    <circle cx="333.0" cy="405.3" r="6.5"/>
+    <circle cx="303.3" cy="417.2" r="6.5"/>
+    <circle cx="272.0" cy="423.2" r="6.5"/>
+    <circle cx="240.0" cy="423.2" r="6.5"/>
+    <circle cx="208.7" cy="417.2" r="6.5"/>
+    <circle cx="179.0" cy="405.3" r="6.5"/>
+    <circle cx="152.1" cy="388.1" r="6.5"/>
+    <circle cx="129.0" cy="366.0" r="6.5"/>
+    <circle cx="110.5" cy="340.0" r="10"/>
+    <circle cx="97.2" cy="310.9" r="6.5"/>
+    <circle cx="89.7" cy="279.9" r="6.5"/>
+    <circle cx="88.2" cy="248.0" r="6.5"/>
+    <circle cx="92.7" cy="216.4" r="6.5"/>
+    <circle cx="103.2" cy="186.2" r="6.5"/>
+    <circle cx="119.2" cy="158.6" r="6.5"/>
+    <circle cx="140.1" cy="134.4" r="6.5"/>
+    <circle cx="165.2" cy="114.7" r="6.5"/>
+    <circle cx="193.6" cy="100.0" r="6.5"/>
+    <circle cx="224.2" cy="91.0" r="6.5"/>
+  </g>
+  <!-- eight-pointed star -->
+  <g transform="translate(256 256)" fill="none" stroke="url(#gold)" stroke-width="10" stroke-linejoin="round">
+    <rect x="-96" y="-96" width="192" height="192" rx="10"/>
+    <rect x="-96" y="-96" width="192" height="192" rx="10" transform="rotate(45)"/>
+  </g>
+  <!-- crescent -->
+  <mask id="cres"><circle cx="256" cy="256" r="62" fill="#fff"/><circle cx="282" cy="240" r="54" fill="#000"/></mask>
+  <circle cx="256" cy="256" r="62" fill="url(#gold)" mask="url(#cres)"/>
+  <path transform="translate(290 226)" d="M0-13l3.6 9.4L13 0l-9.4 3.6L0 13l-3.6-9.4L-13 0l9.4-3.6z" fill="#f6e2a8"/>
+</svg>
