@@ -338,11 +338,11 @@ function renderPrayerSettings() {
     const t = PrayerTimes.forDate(today, p.lat, p.lng, p.method, p.adj);
     const iq = { ...IQAMA_DEFAULT, ...(p.iqama || {}) };
     $("#loc-status").innerHTML = `${p.city ? `<b>${p.city}</b> · ` : ""}<bdi dir="ltr">${p.lat.toFixed(3)}, ${p.lng.toFixed(3)}</bdi>`;
-    $("#ptable").innerHTML = `<div class="pt-h"><span>الصلاة</span><span>الأذان</span><span>تعديل (د)</span><span>الإقامة بعد (د)</span></div>` +
+    $("#ptable").innerHTML = `<div class="pt-h"><span>الصلاة</span><span>الأذان</span><span>تعديل (د)</span><span>الإقامة (د)</span></div>` +
       PRAYER_KEYS.map((k) => {
         const adhan = PrayerTimes.toDate(today, t[k]);
         return `<div class="pt-r"><span>${PRAYER_NAMES[k]}</span><b>${hm(adhan)}</b>
-          <input type="number" inputmode="numeric" data-k="${k}" data-f="adj" value="${Number(p.adj?.[k]) || 0}" min="-30" max="30">
+          <div class="mini-step" data-k="${k}"><button data-d="1" aria-label="زيادة دقيقة">+</button><span>${Number(p.adj?.[k]) || 0}</span><button data-d="-1" aria-label="نقص دقيقة">−</button></div>
           <input type="number" inputmode="numeric" data-k="${k}" data-f="iqama" value="${Number(iq[k]) || 0}" min="0" max="90"></div>`;
       }).join("");
     $("#lat").value = p.lat; $("#lng").value = p.lng;
@@ -765,6 +765,15 @@ function bind() {
     S.settings.prayer = { ...(pr() || {}), method: e.target.value, methodManual: true };
     prayerChanged();
   };
+  // تعديل الدقائق بالأزرار (لوحة الأرقام في أندرويد لا تحوي علامة السالب)
+  $("#ptable").addEventListener("click", (e) => {
+    const b = e.target.closest(".mini-step button");
+    if (!b) return;
+    const p = pr(), k = b.parentElement.dataset.k;
+    const v = Math.max(-30, Math.min(30, (Number(p.adj?.[k]) || 0) + Number(b.dataset.d)));
+    p.adj = { ...(p.adj || {}), [k]: v };
+    prayerChanged();
+  });
   $("#ptable").addEventListener("change", (e) => {
     const inp = e.target.closest("input");
     if (!inp) return;

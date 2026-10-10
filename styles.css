@@ -152,7 +152,7 @@ svg { display: block; }
 
 /* ring */
 .ring { position: relative; flex: none; }
-.ring svg { transform: rotate(-90deg); }
+.ring > svg { transform: rotate(-90deg); } /* الحلقة فقط، لا الأيقونة داخلها */
 .ring .track { fill: none; stroke: var(--surface-2); stroke-width: 9; }
 .ring .bar {
   fill: none; stroke: url(#goldGrad); stroke-width: 9; stroke-linecap: round;
@@ -445,10 +445,13 @@ svg { display: block; }
 }
 .field select { flex: 1; max-width: 62%; }
 .ptable { margin-top: 12px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
-.pt-h, .pt-r { display: grid; grid-template-columns: 1fr 64px 70px 70px; align-items: center; gap: 6px; padding: 8px 10px; }
+.pt-h, .pt-r { display: grid; grid-template-columns: 1fr 52px 92px 60px; align-items: center; gap: 6px; padding: 8px 10px; }
 .pt-h { font-size: 11.5px; color: var(--muted); background: var(--surface-2); }
 .pt-r { font-size: 14px; border-top: 1px solid var(--border); }
 .pt-r b { color: var(--gold); font-weight: 600; font-variant-numeric: tabular-nums; }
+.mini-step { display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-solid); height: 34px; }
+.mini-step button { width: 28px; height: 100%; font-size: 18px; color: var(--gold); }
+.mini-step span { min-width: 22px; text-align: center; font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
 .pt-r input {
   width: 100%; font: inherit; text-align: center; direction: ltr; color: var(--text);
   background: var(--surface-solid); border: 1px solid var(--border); border-radius: 10px; padding: 6px 4px;
