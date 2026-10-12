@@ -587,11 +587,16 @@ function closeSheet(fromPop) {
 window.addEventListener("popstate", () => closeSheet(true));
 
 /* ========= الإعدادات ========= */
+// «تلقائي»: داكن من الفجر إلى المغرب، وفاتح من المغرب إلى الفجر (حسب أوقات الصلاة)
+function autoTheme(now = new Date()) {
+  const t = dayTimes(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+  return now >= t.fajr && now < t.maghrib ? "dark" : "light";
+}
 function applySettings() {
-  document.documentElement.dataset.theme = S.settings.theme;
+  const theme = S.settings.theme === "auto" ? autoTheme() : S.settings.theme;
+  document.documentElement.dataset.theme = theme;
   document.documentElement.style.setProperty("--scale", S.settings.scale);
-  const dark =
-    S.settings.theme === "dark" || (S.settings.theme === "auto" && !matchMedia("(prefers-color-scheme: light)").matches);
+  const dark = theme === "dark";
   $('meta[name="theme-color"]').content = dark ? "#06140f" : "#f6f0e2";
 }
 function renderSettings() {
@@ -793,7 +798,7 @@ function bind() {
     if (!(Math.abs(lat) <= 90 && Math.abs(lng) <= 180)) return toast("إحداثيات غير صحيحة");
     setLocation(lat, lng, "");
   };
-  setInterval(() => { if (!openSheet) renderPrayer(); }, 30000);
+  setInterval(() => { applySettings(); if (!openSheet) renderPrayer(); }, 30000);
   $("#set-theme").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; S.settings.theme = b.dataset.v; save(); applySettings(); renderSettings(); };
   $("#set-scale").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; S.settings.scale = Number(b.dataset.v); save(); applySettings(); renderSettings(); };
   $("#set-vibrate").onchange = (e) => { S.settings.vibrate = e.target.checked; save(); if (e.target.checked) vibrate(20); };
@@ -816,6 +821,7 @@ function bind() {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") return;
     if (NATIVE) S = load(); // ربما عدّ المستخدم من الويدجت
+    applySettings();
     if (rollover()) { tab = tabFor(currentPeriod()); closeSheet(); }
     if (!openSheet) renderHome();
     if (openSheet === "#counter" && cur) { renderCounter(true); requestWake(); }

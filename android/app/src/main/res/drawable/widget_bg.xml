@@ -1,24 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- ثيم ليلي فاخر: نيلي عميق مع توهّج كهرماني خفيف -->
+<!-- نفس خلفية بطاقة «قيام الليل»: نيلي عميق، توهّج بنفسجي في الأعلى، ونجوم خافتة -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape>
-            <gradient android:angle="300" android:startColor="#0F1633" android:centerColor="#1B2452" android:endColor="#2E275A" />
+            <gradient android:angle="315" android:startColor="#121A3A" android:centerColor="#1E2857" android:endColor="#2C2558" />
             <corners android:radius="30dp" />
         </shape>
     </item>
     <item>
         <shape>
-            <gradient android:type="radial" android:centerX="0.92" android:centerY="0.0"
-                android:gradientRadius="70%p" android:startColor="#2EFFC46B" android:endColor="#00FFC46B" />
+            <gradient android:type="radial" android:centerX="0.85" android:centerY="0.0"
+                android:gradientRadius="75%p" android:startColor="#FF3A3270" android:endColor="#003A3270" />
             <corners android:radius="30dp" />
         </shape>
+    </item>
+    <item android:gravity="top|left" android:width="2dp" android:height="2dp"
+        android:left="28dp" android:top="22dp">
+        <shape android:shape="oval"><solid android:color="#80FFFFFF" /></shape>
+    </item>
+    <item android:gravity="top|left" android:width="1.5dp" android:height="1.5dp"
+        android:left="120dp" android:top="14dp">
+        <shape android:shape="oval"><solid android:color="#80FFFFFF" /></shape>
+    </item>
+    <item android:gravity="top|right" android:width="2dp" android:height="2dp"
+        android:right="150dp" android:top="30dp">
+        <shape android:shape="oval"><solid android:color="#80FFFFFF" /></shape>
+    </item>
+    <item android:gravity="top|right" android:width="1.5dp" android:height="1.5dp"
+        android:right="60dp" android:top="70dp">
+        <shape android:shape="oval"><solid android:color="#80FFFFFF" /></shape>
+    </item>
+    <item android:gravity="bottom|left" android:width="2dp" android:height="2dp"
+        android:left="70dp" android:bottom="40dp">
+        <shape android:shape="oval"><solid android:color="#80FFFFFF" /></shape>
+    </item>
+    <item android:gravity="bottom|right" android:width="1.5dp" android:height="1.5dp"
+        android:right="110dp" android:bottom="24dp">
+        <shape android:shape="oval"><solid android:color="#80FFFFFF" /></shape>
+    </item>
+    <item android:gravity="bottom|left" android:width="1.5dp" android:height="1.5dp"
+        android:left="190dp" android:bottom="70dp">
+        <shape android:shape="oval"><solid android:color="#80FFFFFF" /></shape>
+    </item>
+    <item android:gravity="top|left" android:width="2dp" android:height="2dp"
+        android:left="230dp" android:top="48dp">
+        <shape android:shape="oval"><solid android:color="#80FFFFFF" /></shape>
     </item>
     <item>
         <shape>
             <solid android:color="#00000000" />
             <corners android:radius="30dp" />
-            <stroke android:width="1dp" android:color="#38FFC46B" />
+            <stroke android:width="1dp" android:color="#47FFC46B" />
         </shape>
     </item>
 </layer-list>

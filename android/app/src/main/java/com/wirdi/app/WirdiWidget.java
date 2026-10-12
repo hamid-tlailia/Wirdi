@@ -20,6 +20,7 @@ import java.util.Locale;
 public class WirdiWidget extends AppWidgetProvider {
     static final String ACTION_REFRESH = "com.wirdi.app.REFRESH";
     static final String EXTRA_WIRD = "wird";
+    private static final long LOOKAHEAD = 3000, REFRESH_EARLY = 2000;
 
     private static final int[] CHIPS = {R.id.c0, R.id.c1, R.id.c2, R.id.c3, R.id.c4, R.id.c5, R.id.c6, R.id.c7};
 
@@ -59,8 +60,11 @@ public class WirdiWidget extends AppWidgetProvider {
         RemoteViews v = new RemoteViews(ctx.getPackageName(), R.layout.widget);
         v.setOnClickPendingIntent(R.id.w_root, openApp(ctx));
 
-        WirdiStore.TimeInfo ti = st.timeInfo(System.currentTimeMillis());
-        long nextRefresh = renderPrayer(v, st, ti);
+        // ننظر قليلًا إلى الأمام: التحديث يُجدول قبل الأذان بثانيتين، فيُعرض مباشرة العدّ للإقامة
+        // بدل أن يتجاوز العدّاد الصفر ويصبح سالبًا
+        long ahead = System.currentTimeMillis() + LOOKAHEAD;
+        WirdiStore.TimeInfo ti = st.timeInfo(ahead);
+        long nextRefresh = renderPrayer(v, st, ti, ahead);
         renderStats(v, st, ti);
 
         mgr.updateAppWidget(ids, v);
@@ -68,7 +72,7 @@ public class WirdiWidget extends AppWidgetProvider {
     }
 
     // ———— الصلاة القادمة ————
-    private static long renderPrayer(RemoteViews v, WirdiStore st, WirdiStore.TimeInfo ti) {
+    private static long renderPrayer(RemoteViews v, WirdiStore st, WirdiStore.TimeInfo ti, long ahead) {
         JSONObject p = st.prayerSettings();
         long now = System.currentTimeMillis();
         if (p == null || !p.has("lat")) {
@@ -78,7 +82,7 @@ public class WirdiWidget extends AppWidgetProvider {
             v.setViewVisibility(R.id.w_p_box, View.GONE);
             return Long.MAX_VALUE;
         }
-        PrayerTimes.Status nx = PrayerTimes.status(p, now);
+        PrayerTimes.Status nx = PrayerTimes.status(p, ahead);
         if (nx == null) {
             v.setViewVisibility(R.id.w_p_box, View.GONE);
             return Long.MAX_VALUE;
@@ -90,7 +94,7 @@ public class WirdiWidget extends AppWidgetProvider {
             v.setTextColor(R.id.w_p_label, C_PARTIAL);
         } else if (ti.period.equals("night")) {
             // الفراغ بين العشاء والفجر: ترغيب في قيام الليل
-            v.setTextViewText(R.id.w_p_label, now >= ti.lastThird
+            v.setTextViewText(R.id.w_p_label, ahead >= ti.lastThird
                     ? "☾ أنت في الثلث الأخير — قم ولو بركعتين"
                     : "☾ قيام الليل · الثلث الأخير " + hhmm(ti.lastThird));
             v.setTextColor(R.id.w_p_label, C_PARTIAL);
@@ -104,8 +108,8 @@ public class WirdiWidget extends AppWidgetProvider {
         v.setTextViewText(R.id.w_p_cap, nx.iqama ? "حتى الإقامة" : "حتى الأذان");
         v.setChronometer(R.id.w_p_left, SystemClock.elapsedRealtime() + (nx.at - now), "%s", true);
         v.setChronometerCountDown(R.id.w_p_left, true);
-        long t = nx.at + 5000;
-        if (ti.period.equals("night") && ti.lastThird > now) t = Math.min(t, ti.lastThird + 5000);
+        long t = nx.at - REFRESH_EARLY;
+        if (ti.period.equals("night") && ti.lastThird > ahead) t = Math.min(t, ti.lastThird - REFRESH_EARLY);
         return t;
     }
 
@@ -165,7 +169,7 @@ public class WirdiWidget extends AppWidgetProvider {
         long t = prayerAt;
         for (int add = 0; add < 2; add++) {
             for (long b : st.dayTimes(WirdiStore.startOfDay(now, add))) {
-                if (b > now) t = Math.min(t, b + 5000);
+                if (b - REFRESH_EARLY > now) t = Math.min(t, b - REFRESH_EARLY);
             }
         }
         if (t != Long.MAX_VALUE) PrayerAlarms.setExact(ctx, t, refreshIntent(ctx));
