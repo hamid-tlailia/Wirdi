@@ -1,5 +1,5 @@
 // عامل الخدمة: يجعل التطبيق يعمل دون إنترنت
-const CACHE = "wirdi-v10";
+const CACHE = "wirdi-v11";
 const ASSETS = [
   "./",
   "index.html",

@@ -587,10 +587,10 @@ function closeSheet(fromPop) {
 window.addEventListener("popstate", () => closeSheet(true));
 
 /* ========= الإعدادات ========= */
-// «تلقائي»: داكن من الفجر إلى المغرب، وفاتح من المغرب إلى الفجر (حسب أوقات الصلاة)
+// «حسب الصلاة»: فاتح من الفجر إلى المغرب، وداكن من المغرب إلى الفجر
 function autoTheme(now = new Date()) {
   const t = dayTimes(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
-  return now >= t.fajr && now < t.maghrib ? "dark" : "light";
+  return now >= t.fajr && now < t.maghrib ? "light" : "dark";
 }
 function applySettings() {
   const theme = S.settings.theme === "auto" ? autoTheme() : S.settings.theme;
